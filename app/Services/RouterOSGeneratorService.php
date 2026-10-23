@@ -40,6 +40,11 @@ class RouterOSGeneratorService
 # Remove any previous L2TP client for this site (safe to re-run)
 /interface l2tp-client remove [find name="{$ifName}"]
 
+# IPsec Phase 2 compatibility: the VPN server (Libreswan 5.x) rejects the
+# RouterOS default proposal (pfs-group=modp1024, removed from Libreswan).
+# Align the default proposal with the server before bringing the tunnel up.
+/ip ipsec proposal set [find default=yes] pfs-group=modp2048
+
 # Create L2TP client interface
 /interface l2tp-client add \\
     name={$ifName} \\
