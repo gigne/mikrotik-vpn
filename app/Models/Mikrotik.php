@@ -17,7 +17,6 @@ class Mikrotik extends Model
     protected $fillable = [
         'site_name',
         'description',
-        'vpn_ip',
         'vpn_username',
         'winbox_internal_port',
         'webfig_internal_port',
@@ -85,8 +84,17 @@ class Mikrotik extends Model
     }
 
         /**
+         * Get the VPN IP from the related VpnUser record.
+         * Single source of truth: vpn_users.assigned_ip
+         */
+        public function getVpnIpAttribute(): string
+        {
+            return $this->vpnUser?->assigned_ip ?? '';
+        }
+
+        /**
          * Get the VPN password from the related VpnUser record.
-         * This is the single source of truth for the password.
+         * Single source of truth for passwords.
          */
         public function vpnPassword(): string
         {

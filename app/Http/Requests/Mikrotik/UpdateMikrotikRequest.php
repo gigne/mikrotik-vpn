@@ -6,6 +6,7 @@ namespace App\Http\Requests\Mikrotik;
 
 use App\Models\Mikrotik;
 use App\Models\NginxMapping;
+use App\Models\VpnUser;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -41,12 +42,12 @@ class UpdateMikrotikRequest extends FormRequest
                 if ($ipLong < $startLong || $ipLong > $endLong) {
                     return $fail("{$attribute} must be between {$rangeStart} and {$rangeEnd}.");
                 }
-                // Check uniqueness
-                $existing = Mikrotik::where('vpn_ip', $value)
-                    ->where('id', '!=', $mikrotik->id)
+                // Check uniqueness against vpn_users table (single source of truth for IPs)
+                $existing = VpnUser::where('assigned_ip', $value)
+                    ->where('username', '!=', $mikrotik->vpn_username)
                     ->exists();
                 if ($existing) {
-                    return $fail("{$attribute} is already in use by another MikroTik.");
+                    return $fail("{$attribute} is already in use by another VPN user.");
                 }
             },
             'vpn_password' => ['nullable', 'string', 'min:8', 'max:64'],

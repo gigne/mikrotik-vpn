@@ -54,11 +54,10 @@ class MikrotikProvisionService
                 $webfigPublicPort = $data->webfigPublicPort
                             ?? $this->portAllocator->allocateWebfigPort();
 
-                // 4. Create MikroTik record (password stored in vpn_users table only)
+                // 4. Create MikroTik record (IP & password stored in vpn_users table only)
                 $mikrotik = Mikrotik::create([
                             'site_name' => $siteName,
                             'description' => $description,
-                            'vpn_ip' => $vpnIp,
                             'vpn_username' => $vpnUsername,
                             'winbox_internal_port' => $data->winboxInternalPort,
                             'webfig_internal_port' => $data->webfigInternalPort,
@@ -93,21 +92,7 @@ class MikrotikProvisionService
                             'is_enabled' => true,
                 ]);
 
-                // 7. Deploy chap-secrets (best-effort; sandbox may skip restart)
-                try {
-                            $this->chapSecretsDeploy->deploy();
-                } catch (\Exception $e) {
-                            Log::warning('Chap-secrets deploy during provisioning: ' . $e->getMessage());
-                }
-
-                // 8. Deploy nginx config (best-effort)
-                try {
-                            $this->nginxDeploy->deploy();
-                } catch (\Exception $e) {
-                            Log::warning('Nginx deploy during provisioning: ' . $e->getMessage());
-                }
-
-                // 9. Generate RouterOS script
+                // 9. Generate RouterOS script (reads IP/password from VpnUser)
                 $script = $this->routerOSGenerator->generate($mikrotik);
 
                 $this->auditLog->log('mikrotik_provisioned', $mikrotik, [
@@ -131,33 +116,51 @@ class MikrotikProvisionService
     public function update(Mikrotik $mikrotik, array $data): Mikrotik
     {
         return DB::transaction(function () use ($mikrotik, $data) {
-            $oldData = $mikrotik->toArray();
-
-            // Update MikroTik
-            $mikrotik->update(array_filter($data, fn($v) => $v !== null));
-
-            // If VPN IP or password changed, update linked VPN user
+            // Sync VPN IP change to linked VpnUser
             $vpnUsername = $mikrotik->vpn_username;
-            if (isset($data['vpn_ip']) && $data['vpn_ip'] !== $oldData['vpn_ip']) {
+            if (isset($data['vpn_ip']) && !empty($data['vpn_ip'])) {
+                $oldIp = $mikrotik->vpn_ip;
+                if ($data['vpn_ip'] !== $oldIp) {
+                    Log::info("Updating VPN IP for {$vpnUsername}: {$oldIp} -> {$data['vpn_ip']}");
+                    VpnUser::where('username', $vpnUsername)
+                        ->update(['assigned_ip' => $data['vpn_ip']]);
+                }
+            }
+
+            // Sync VPN password change to linked VpnUser
+            if (isset($data['vpn_password']) && $data['vpn_password'] !== null && $data['vpn_password'] !== '') {
+                Log::info("Updating VPN password for {$vpnUsername}");
                 VpnUser::where('username', $vpnUsername)
-                    ->update(['assigned_ip' => $data['vpn_ip']]);
+                    ->update(['password' => $data['vpn_password']]);
+            }
+
+            // Update MikroTik-specific fields only (non-VPN fields)
+            $mikrotikData = array_filter([
+                'site_name' => $data['site_name'] ?? null,
+                'description' => $data['description'] ?? null,
+                'winbox_internal_port' => $data['winbox_internal_port'] ?? null,
+                'webfig_internal_port' => $data['webfig_internal_port'] ?? null,
+                'winbox_public_port' => $data['winbox_public_port'] ?? null,
+                'webfig_public_port' => $data['webfig_public_port'] ?? null,
+                'routeros_version' => $data['routeros_version'] ?? null,
+                'ssh_public_key' => $data['ssh_public_key'] ?? null,
+            ], fn($v) => $v !== null);
+
+            if (!empty($mikrotikData)) {
+                $mikrotik->update($mikrotikData);
             }
 
             // If public ports changed, sync the NginxMapping records
             $newWinboxPort = $data['winbox_public_port'] ?? null;
             $newWebfigPort = $data['webfig_public_port'] ?? null;
-            $oldWinboxPort = (int)($oldData['winbox_public_port'] ?? 0);
-            $oldWebfigPort = (int)($oldData['webfig_public_port'] ?? 0);
 
-            if ($newWinboxPort !== null && (int)$newWinboxPort !== $oldWinboxPort) {
-                Log::info("Updating winbox public port: {$oldWinboxPort} -> {$newWinboxPort} for Mikrotik #{$mikrotik->id}");
+            if ($newWinboxPort !== null) {
                 $mikrotik->nginxMappings()
                     ->where('conn_type', 'winbox')
                     ->update(['public_port' => $newWinboxPort]);
             }
 
-            if ($newWebfigPort !== null && (int)$newWebfigPort !== $oldWebfigPort) {
-                Log::info("Updating webfig public port: {$oldWebfigPort} -> {$newWebfigPort} for Mikrotik #{$mikrotik->id}");
+            if ($newWebfigPort !== null) {
                 $mikrotik->nginxMappings()
                     ->where('conn_type', 'webfig')
                     ->update(['public_port' => $newWebfigPort]);
@@ -173,11 +176,13 @@ class MikrotikProvisionService
             }
 
             $this->auditLog->log('mikrotik_updated', $mikrotik, [
-                'old' => $oldData,
-                'new' => $mikrotik->fresh()->toArray(),
+                'vpn_ip_changed' => isset($data['vpn_ip']),
+                'vpn_password_changed' => isset($data['vpn_password']) && $data['vpn_password'] !== '',
             ]);
 
             return $mikrotik->fresh();
+        });
+    }
         });
     }
 
@@ -197,10 +202,10 @@ class MikrotikProvisionService
             // Delete nginx mappings (hard delete — no soft deletes on this model)
             $mikrotik->nginxMappings()->delete();
 
-            // Hard-delete the VPN user so the IP unique index is freed
+            // Hard-delete the VPN user so the assigned_ip unique index is freed
             VpnUser::where('username', $vpnUsername)->forceDelete();
 
-            // Hard-delete the MikroTik so its vpn_ip unique index is freed
+            // Decommission MikroTik
             $mikrotik->forceDelete();
 
             // Deploy cleaned config (best-effort)

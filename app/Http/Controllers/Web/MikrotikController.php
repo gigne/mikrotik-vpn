@@ -40,7 +40,7 @@ class MikrotikController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->where('site_name', 'like', "%{$search}%")
                       ->orWhere('vpn_username', 'like', "%{$search}%")
-                      ->orWhere('vpn_ip', 'like', "%{$search}%");
+                      ->orWhereHas('vpnUser', fn($q) => $q->where('assigned_ip', 'like', "%{$search}%"));
                 });
             })
             ->orderBy('site_name')

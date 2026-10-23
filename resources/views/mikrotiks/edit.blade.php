@@ -32,8 +32,8 @@
                     </div>
                     <div>
                         <label class="block font-medium text-sm text-gray-700">VPN Password</label>
-                        <input type="text" name="vpn_password" value=""
-                               class="mt-1 block w-full border-gray-300 rounded-md text-sm font-mono" placeholder="leave blank to keep">
+                        <input type="password" name="vpn_password" autocomplete="new-password"
+                               class="mt-1 block w-full border-gray-300 rounded-md text-sm font-mono" placeholder="leave blank to keep current">
                         @error('vpn_password') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>

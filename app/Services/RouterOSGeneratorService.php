@@ -23,7 +23,7 @@ class RouterOSGeneratorService
         $vpnServer = config('vpnpanel.domain');
         $username = $mikrotik->vpn_username;
         $password = $mikrotik->vpnUser?->password ?? '';
-        $ip = $mikrotik->vpn_ip;
+        $ip = $mikrotik->vpn_ip; // accessor reads from VpnUser
         $psk = config('vpnpanel.psk');
         $ifName = $this->interfaceName($mikrotik);
         $vpnSubnet = config('vpnpanel.ip_pool.subnet', '192.168.42.0/24');

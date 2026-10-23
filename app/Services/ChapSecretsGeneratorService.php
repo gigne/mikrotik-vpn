@@ -48,8 +48,8 @@ class ChapSecretsGeneratorService
         foreach (Mikrotik::orderBy('vpn_username')->get() as $mikrotik) {
             $entries[$mikrotik->vpn_username] = $this->formatEntry(
                 $mikrotik->vpn_username,
-                $mikrotik->vpnUser?->password ?? '',
-                $mikrotik->vpn_ip,
+                $mikrotik->vpnPassword(),
+                $mikrotik->vpn_ip, // accessor reads from VpnUser
             );
         }
 
