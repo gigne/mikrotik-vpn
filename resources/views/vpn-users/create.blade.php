@@ -26,7 +26,7 @@
                 <div>
                     <label class="block font-medium text-sm text-gray-700">Assigned VPN IP (optional)</label>
                     <input type="text" name="assigned_ip" value="{{ old('assigned_ip') }}"
-                           class="mt-1 block w-full border-gray-300 rounded-md text-sm font-mono" placeholder="192.168.47.x - auto allocated if empty">
+                           class="mt-1 block w-full border-gray-300 rounded-md text-sm font-mono" placeholder="192.168.43.x - auto allocated if empty">
                     @error('assigned_ip') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
 

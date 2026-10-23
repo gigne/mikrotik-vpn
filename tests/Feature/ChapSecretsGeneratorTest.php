@@ -24,29 +24,29 @@ class ChapSecretsGeneratorTest extends TestCase
         VpnUser::factory()->create([
             'username' => 'mt-kantor',
             'password' => 'password123',
-            'assigned_ip' => '192.168.47.2',
+            'assigned_ip' => '192.168.43.2',
             'is_enabled' => true,
         ]);
 
         VpnUser::factory()->create([
             'username' => 'mt-gudang',
             'password' => 'password456',
-            'assigned_ip' => '192.168.47.3',
+            'assigned_ip' => '192.168.43.3',
             'is_enabled' => true,
         ]);
 
         VpnUser::factory()->create([
             'username' => 'disabled-user',
             'password' => 'disabled',
-            'assigned_ip' => '192.168.47.90',
+            'assigned_ip' => '192.168.43.90',
             'is_enabled' => false,
         ]);
 
         $generator = $this->generator();
         $content = $generator->generate();
 
-        $this->assertStringContainsString('"mt-kantor" l2tpd "password123" 192.168.47.2', $content);
-        $this->assertStringContainsString('"mt-gudang" l2tpd "password456" 192.168.47.3', $content);
+        $this->assertStringContainsString('"mt-kantor" l2tpd "password123" 192.168.43.2', $content);
+        $this->assertStringContainsString('"mt-gudang" l2tpd "password456" 192.168.43.3', $content);
         $this->assertStringNotContainsString('disabled-user', $content);
         $this->assertSame([], $generator->validate($content));
     }
@@ -56,7 +56,7 @@ class ChapSecretsGeneratorTest extends TestCase
         VpnUser::factory()->create([
             'username' => 'still-valid',
             'password' => 'pw123456',
-            'assigned_ip' => '192.168.47.10',
+            'assigned_ip' => '192.168.43.10',
             'is_enabled' => true,
             'expired_at' => now()->addDay(),
         ]);
@@ -64,7 +64,7 @@ class ChapSecretsGeneratorTest extends TestCase
         VpnUser::factory()->create([
             'username' => 'long-expired',
             'password' => 'pw123456',
-            'assigned_ip' => '192.168.47.11',
+            'assigned_ip' => '192.168.43.11',
             'is_enabled' => true,
             'expired_at' => now()->subDay(),
         ]);
@@ -96,7 +96,7 @@ class ChapSecretsGeneratorTest extends TestCase
         Mikrotik::factory()->create([
             'site_name' => 'Kantor',
             'vpn_username' => 'mt-kantor',
-            'vpn_ip' => '192.168.47.2',
+            'vpn_ip' => '192.168.43.2',
         ]);
 
         // Provisioning creates a matching VPN user; the MikroTik record must win
@@ -104,7 +104,7 @@ class ChapSecretsGeneratorTest extends TestCase
         VpnUser::factory()->create([
             'username' => 'mt-kantor',
             'password' => 'should-not-appear',
-            'assigned_ip' => '192.168.47.2',
+            'assigned_ip' => '192.168.43.2',
             'is_enabled' => true,
         ]);
 
@@ -151,14 +151,14 @@ class ChapSecretsGeneratorTest extends TestCase
         VpnUser::factory()->create([
             'username' => 'odd-user',
             'password' => 'pa"ss\\word',
-            'assigned_ip' => '192.168.47.20',
+            'assigned_ip' => '192.168.43.20',
             'is_enabled' => true,
         ]);
 
         $generator = $this->generator();
         $content = $generator->generate();
 
-        $this->assertStringContainsString('"odd-user" l2tpd "password" 192.168.47.20', $content);
+        $this->assertStringContainsString('"odd-user" l2tpd "password" 192.168.43.20', $content);
         $this->assertSame([], $generator->validate($content));
     }
 
@@ -171,14 +171,14 @@ class ChapSecretsGeneratorTest extends TestCase
 
         $this->assertNotEmpty($generator->validate('not-a-valid-line'));
         $this->assertNotEmpty($generator->validate('"user" l2tpd "pw" 999.1.1.1'));
-        $this->assertNotEmpty($generator->validate('"bad user" l2tpd "pw" 192.168.47.2'));
+        $this->assertNotEmpty($generator->validate('"bad user" l2tpd "pw" 192.168.43.2'));
     }
 
     public function test_validate_reports_the_offending_line_number(): void
     {
         $errors = $this->generator()->validate(
             "# header\n"
-            . '"good" l2tpd "pw" 192.168.47.2' . "\n"
+            . '"good" l2tpd "pw" 192.168.43.2' . "\n"
             . 'broken line' . "\n",
         );
 

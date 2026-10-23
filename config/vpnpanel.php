@@ -93,10 +93,10 @@ return [
     */
 
     'ip_pool' => [
-        'subnet' => env('VPNPANEL_VPN_SUBNET', '192.168.47.0/24'),
-        'server_ip' => env('VPNPANEL_VPN_SERVER_IP', '192.168.47.1'),
-        'range_start' => env('VPNPANEL_VPN_RANGE_START', '192.168.47.2'),
-        'range_end' => env('VPNPANEL_VPN_RANGE_END', '192.168.47.199'),
+        'subnet' => env('VPNPANEL_VPN_SUBNET', '192.168.43.0/24'),
+        'server_ip' => env('VPNPANEL_VPN_SERVER_IP', '192.168.43.1'),
+        'range_start' => env('VPNPANEL_VPN_RANGE_START', '192.168.43.2'),
+        'range_end' => env('VPNPANEL_VPN_RANGE_END', '192.168.43.199'),
     ],
 
     /*

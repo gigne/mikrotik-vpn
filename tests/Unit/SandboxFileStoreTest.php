@@ -60,7 +60,7 @@ class SandboxFileStoreTest extends TestCase
         $this->assertFalse($this->store->exists($path));
         $this->assertNull($this->store->get($path));
 
-        $contents = "# test\n" . '"mt-test" l2tpd "pwd" 192.168.47.10' . "\n";
+        $contents = "# test\n" . '"mt-test" l2tpd "pwd" 192.168.43.10' . "\n";
         $this->store->put($path, $contents);
 
         $this->assertTrue($this->store->exists($path));

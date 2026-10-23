@@ -29,7 +29,7 @@ class IpAllocatorService
         $subnet = config('vpnpanel.ip_pool.subnet');
         $rangeStart = config('vpnpanel.ip_pool.range_start');
         $rangeEnd = config('vpnpanel.ip_pool.range_end');
-        $serverIp = config('vpnpanel.ip_pool.server_ip', '192.168.47.1');
+        $serverIp = config('vpnpanel.ip_pool.server_ip', '192.168.43.1');
 
         if (! $this->validateSubnet($subnet)) {
                     throw new ProvisioningException("Invalid subnet: {$subnet}");

@@ -26,7 +26,7 @@ class RouterOSGeneratorService
         $ip = $mikrotik->vpn_ip;
         $psk = config('vpnpanel.psk');
         $ifName = $this->interfaceName($mikrotik);
-        $vpnSubnet = config('vpnpanel.ip_pool.subnet', '192.168.47.0/24');
+        $vpnSubnet = config('vpnpanel.ip_pool.subnet', '192.168.43.0/24');
 
         return <<<ROUTEROS
 # RouterOS L2TP/IPSec Client Configuration

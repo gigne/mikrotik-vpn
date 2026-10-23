@@ -94,7 +94,7 @@ class DatabaseAndAuditMaintenanceTest extends TestCase
     {
         $mikrotik = Mikrotik::factory()->create([
             'site_name' => 'HQ',
-            'vpn_ip' => '192.168.47.10',
+            'vpn_ip' => '192.168.43.10',
             'is_online' => false,
         ]);
 

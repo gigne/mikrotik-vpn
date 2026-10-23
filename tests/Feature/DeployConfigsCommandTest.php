@@ -34,12 +34,12 @@ class DeployConfigsCommandTest extends TestCase
         VpnUser::factory()->create([
             'username' => 'mt-alpha',
             'password' => 'secret123',
-            'assigned_ip' => '192.168.47.2',
+            'assigned_ip' => '192.168.43.2',
         ]);
 
         $mikrotik = Mikrotik::factory()->create([
             'vpn_username' => 'mt-beta',
-            'vpn_ip' => '192.168.47.3',
+            'vpn_ip' => '192.168.43.3',
         ]);
         NginxMapping::create([
             'mikrotik_id' => $mikrotik->id,
@@ -57,7 +57,7 @@ class DeployConfigsCommandTest extends TestCase
         $this->artisan('vpnpanel:deploy-configs')->assertSuccessful();
 
         $chapSecrets = (string) $this->files->get(config('vpnpanel.paths.chap_secrets'));
-        $this->assertStringContainsString('"mt-alpha" l2tpd "secret123" 192.168.47.2', $chapSecrets);
+        $this->assertStringContainsString('"mt-alpha" l2tpd "secret123" 192.168.43.2', $chapSecrets);
         $this->assertStringContainsString('"mt-beta"', $chapSecrets);
 
         $stream = (string) $this->files->get(config('vpnpanel.paths.nginx_stream_conf'));
@@ -74,7 +74,7 @@ class DeployConfigsCommandTest extends TestCase
         VpnUser::factory()->create([
             'username' => 'mt-dry',
             'password' => 'secret123',
-            'assigned_ip' => '192.168.47.9',
+            'assigned_ip' => '192.168.43.9',
         ]);
 
         $this->artisan('vpnpanel:deploy-configs', ['--dry-run' => true])
@@ -91,7 +91,7 @@ class DeployConfigsCommandTest extends TestCase
         VpnUser::factory()->create([
             'username' => 'mt-only',
             'password' => 'secret123',
-            'assigned_ip' => '192.168.47.11',
+            'assigned_ip' => '192.168.43.11',
         ]);
 
         $this->artisan('vpnpanel:deploy-configs', ['--chap-secrets' => true])->assertSuccessful();
@@ -105,7 +105,7 @@ class DeployConfigsCommandTest extends TestCase
         VpnUser::factory()->create([
             'username' => 'mt-nginx',
             'password' => 'secret123',
-            'assigned_ip' => '192.168.47.12',
+            'assigned_ip' => '192.168.43.12',
         ]);
 
         $this->artisan('vpnpanel:deploy-configs', ['--nginx' => true])->assertSuccessful();
@@ -119,7 +119,7 @@ class DeployConfigsCommandTest extends TestCase
         VpnUser::factory()->create([
             'username' => 'mt-fail',
             'password' => 'secret123',
-            'assigned_ip' => '192.168.47.13',
+            'assigned_ip' => '192.168.43.13',
         ]);
 
         $runner = new FakeProcessRunner();

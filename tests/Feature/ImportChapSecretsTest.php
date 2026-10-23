@@ -41,7 +41,7 @@ class ImportChapSecretsTest extends TestCase
         $this->writeSource(
             "# Secrets for authentication\n"
             . '"vpnadmin" l2tpd "AdminSecret1" *' . "\n"
-            . '"static-user" l2tpd "StaticSecret1" 192.168.47.50' . "\n"
+            . '"static-user" l2tpd "StaticSecret1" 192.168.43.50' . "\n"
         );
 
         $this->artisan('vpnpanel:import-chap-secrets', ['--file' => $this->source])
@@ -53,7 +53,7 @@ class ImportChapSecretsTest extends TestCase
         $this->assertTrue($dynamic->is_enabled);
 
         $static = VpnUser::where('username', 'static-user')->firstOrFail();
-        $this->assertSame('192.168.47.50', $static->assigned_ip);
+        $this->assertSame('192.168.43.50', $static->assigned_ip);
     }
 
     public function test_dry_run_imports_nothing(): void
@@ -70,10 +70,10 @@ class ImportChapSecretsTest extends TestCase
     {
         Mikrotik::factory()->create([
             'vpn_username' => 'mt-kantor',
-            'vpn_ip' => '192.168.47.2',
+            'vpn_ip' => '192.168.43.2',
         ]);
 
-        $this->writeSource('"mt-kantor" l2tpd "ShouldNotWin" 192.168.47.2' . "\n");
+        $this->writeSource('"mt-kantor" l2tpd "ShouldNotWin" 192.168.43.2' . "\n");
 
         $this->artisan('vpnpanel:import-chap-secrets', ['--file' => $this->source])
             ->expectsOutputToContain('Nothing to import.')
@@ -106,10 +106,10 @@ class ImportChapSecretsTest extends TestCase
     {
         VpnUser::factory()->create([
             'username' => 'holder',
-            'assigned_ip' => '192.168.47.60',
+            'assigned_ip' => '192.168.43.60',
         ]);
 
-        $this->writeSource('"newcomer" l2tpd "SomeSecret1" 192.168.47.60' . "\n");
+        $this->writeSource('"newcomer" l2tpd "SomeSecret1" 192.168.43.60' . "\n");
 
         $this->artisan('vpnpanel:import-chap-secrets', ['--file' => $this->source])
             ->expectsOutputToContain('Nothing to import.')

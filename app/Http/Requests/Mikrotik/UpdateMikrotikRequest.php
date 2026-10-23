@@ -28,13 +28,13 @@ class UpdateMikrotikRequest extends FormRequest
                     return $fail("{$attribute} must be a valid IPv4 address.");
                 }
                 // Check if IP is the reserved gateway/server IP
-                $serverIp = config('vpnpanel.ip_pool.server_ip', '192.168.47.1');
+                $serverIp = config('vpnpanel.ip_pool.server_ip', '192.168.43.1');
                 if ($value === $serverIp) {
                     return $fail("{$attribute} is reserved for the VPN gateway/server.");
                 }
                 // Check if IP is in allowed range
-                $rangeStart = config('vpnpanel.ip_pool.range_start', '192.168.47.2');
-                $rangeEnd = config('vpnpanel.ip_pool.range_end', '192.168.47.199');
+                $rangeStart = config('vpnpanel.ip_pool.range_start', '192.168.43.2');
+                $rangeEnd = config('vpnpanel.ip_pool.range_end', '192.168.43.199');
                 $ipLong = ip2long($value);
                 $startLong = ip2long($rangeStart);
                 $endLong = ip2long($rangeEnd);
