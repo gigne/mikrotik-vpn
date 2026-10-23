@@ -29,9 +29,7 @@ return new class extends Migration
             $table->id();
             $table->string('site_name', 100)->unique();
             $table->text('description')->nullable();
-            $table->ipAddress('vpn_ip')->unique();
             $table->string('vpn_username', 100)->unique();
-            $table->string('vpn_password_encrypted', 512);
             $table->unsignedInteger('winbox_internal_port')->default(8291);
             $table->unsignedInteger('webfig_internal_port')->default(80);
             $table->unsignedInteger('winbox_public_port')->nullable();

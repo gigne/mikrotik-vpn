@@ -25,10 +25,10 @@ class DatabaseSeeder extends Seeder
      * @var list<array<string, mixed>>
      */
     private const SITES = [
-        ['site_name' => 'Kantor', 'vpn_ip' => '192.168.42.2', 'vpn_username' => 'mt-kantor', 'winbox_public' => 8291, 'webfig_public' => 8080],
-        ['site_name' => 'Gudang', 'vpn_ip' => '192.168.42.3', 'vpn_username' => 'mt-gudang', 'winbox_public' => 8292, 'webfig_public' => 8081],
-        ['site_name' => 'Cabang A', 'vpn_ip' => '192.168.42.4', 'vpn_username' => 'mt-cabang-a', 'winbox_public' => 8293, 'webfig_public' => 8082],
-        ['site_name' => 'Cabang B', 'vpn_ip' => '192.168.42.5', 'vpn_username' => 'mt-cabang-b', 'winbox_public' => 8294, 'webfig_public' => 8083],
+        ['site_name' => 'Kantor',   'assigned_ip' => '192.168.42.2', 'vpn_username' => 'mt-kantor', 'winbox_public' => 8291, 'webfig_public' => 8080],
+        ['site_name' => 'Gudang',   'assigned_ip' => '192.168.42.3', 'vpn_username' => 'mt-gudang', 'winbox_public' => 8292, 'webfig_public' => 8081],
+        ['site_name' => 'Cabang A', 'assigned_ip' => '192.168.42.4', 'vpn_username' => 'mt-cabang-a', 'winbox_public' => 8293, 'webfig_public' => 8082],
+        ['site_name' => 'Cabang B', 'assigned_ip' => '192.168.42.5', 'vpn_username' => 'mt-cabang-b', 'winbox_public' => 8294, 'webfig_public' => 8083],
     ];
 
     public function run(): void
@@ -70,7 +70,6 @@ class DatabaseSeeder extends Seeder
                 [
                     'site_name' => $site['site_name'],
                     'description' => 'Seeded reference branch',
-                    'vpn_ip' => $site['vpn_ip'],
                     'winbox_internal_port' => 8291,
                     'webfig_internal_port' => 80,
                     'winbox_public_port' => $site['winbox_public'],
@@ -84,7 +83,7 @@ class DatabaseSeeder extends Seeder
                 ['username' => $site['vpn_username']],
                 [
                     'password' => $vpnPassword,
-                    'assigned_ip' => $site['vpn_ip'],
+                    'assigned_ip' => $site['assigned_ip'],
                     'notes' => 'Seeded for ' . $site['site_name'],
                     'is_enabled' => true,
                 ],
