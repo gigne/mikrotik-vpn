@@ -19,7 +19,10 @@
                         {{ __('MikroTik') }}
                     </x-nav-link>
                     <x-nav-link :href="route('vpn-users.index')" :active="request()->routeIs('vpn-users.*')">
-                        {{ __('VPN Users') }}
+                        {{ __('L2TP Users') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('ikev2-users.index')" :active="request()->routeIs('ikev2-users.*')">
+                        {{ __('IKEv2 Users') }}
                     </x-nav-link>
                 </div>
             </div>
@@ -80,7 +83,10 @@
                 {{ __('MikroTik') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('vpn-users.index')" :active="request()->routeIs('vpn-users.*')">
-                {{ __('VPN Users') }}
+                {{ __('L2TP Users') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('ikev2-users.index')" :active="request()->routeIs('ikev2-users.*')">
+                {{ __('IKEv2 Users') }}
             </x-responsive-nav-link>
         </div>
 

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\Ikev2UserController;
 use App\Http\Controllers\Web\MikrotikController;
 use App\Http\Controllers\Web\VpnUserController;
 use App\Http\Controllers\ProfileController;
@@ -37,6 +38,13 @@ Route::middleware(['auth', '2fa'])->group(function () {
         ->name('vpn-users.reset-password');
     Route::get('/vpn-users-export', [VpnUserController::class, 'export'])
         ->name('vpn-users.export');
+
+        // IKEv2 users
+        Route::resource('ikev2-users', Ikev2UserController::class);
+        Route::get('/ikev2-users/{ikev2_user}/profile/download', [Ikev2UserController::class, 'downloadProfile'])
+            ->name('ikev2-users.profile.download');
+        Route::post('/ikev2-users/{ikev2_user}/regenerate-certificate', [Ikev2UserController::class, 'regenerateCertificate'])
+            ->name('ikev2-users.regenerate-certificate');
 
     // MikroTik
     Route::resource('mikrotiks', MikrotikController::class);

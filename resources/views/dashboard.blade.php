@@ -46,7 +46,7 @@
             </div>
 
             <!-- Counts -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
                 <div class="bg-white shadow-sm rounded-lg p-6">
                     <div class="text-sm font-medium text-gray-500">Total MikroTik</div>
                     <div class="mt-1 text-3xl font-bold text-gray-900">{{ $stats['mikrotiks']['total'] }}</div>
@@ -60,9 +60,14 @@
                     <div class="mt-1 text-3xl font-bold text-red-600">{{ $stats['mikrotiks']['offline'] }}</div>
                 </div>
                 <div class="bg-white shadow-sm rounded-lg p-6">
-                    <div class="text-sm font-medium text-gray-500">Total VPN Users</div>
+                    <div class="text-sm font-medium text-gray-500">L2TP Users</div>
                     <div class="mt-1 text-3xl font-bold text-gray-900">{{ $stats['vpn_users']['total'] }}</div>
                     <div class="text-xs text-gray-400">{{ $stats['vpn_users']['active'] }} active</div>
+                </div>
+                <div class="bg-white shadow-sm rounded-lg p-6">
+                    <div class="text-sm font-medium text-gray-500">IKEv2 Users</div>
+                    <div class="mt-1 text-3xl font-bold text-gray-900">{{ $ikev2Stats['total'] }}</div>
+                    <div class="text-xs text-gray-400">{{ $ikev2Stats['active'] }} active</div>
                 </div>
             </div>
 

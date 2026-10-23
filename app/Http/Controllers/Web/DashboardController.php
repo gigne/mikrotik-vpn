@@ -9,6 +9,7 @@ use App\Services\VpnMonitorService;
 use App\Services\IpAllocatorService;
 use App\Services\PortAllocatorService;
 use App\Models\AuditLog;
+use App\Models\Ikev2User;
 use App\Models\Mikrotik;
 use Illuminate\Contracts\View\View;
 
@@ -28,11 +29,17 @@ class DashboardController extends Controller
         // vpnpanel:monitor. Falls back gracefully if the cache is cold.
         $serverStatus = $this->getCachedServerStatus();
 
+        $ikev2Active = Ikev2User::active()->count();
+
         return view('dashboard', [
             'stats' => $stats,
             'serverStatus' => $serverStatus,
             'ipStats' => $this->ipAllocator->getStats(),
             'portStats' => $this->portAllocator->getStats(),
+            'ikev2Stats' => [
+                'total' => Ikev2User::count(),
+                'active' => $ikev2Active,
+            ],
             'recentActivity' => AuditLog::with('user')->latest('created_at')->limit(10)->get(),
             'sites' => Mikrotik::orderBy('site_name')->get(['site_name', 'vpn_ip', 'is_online', 'last_seen_at', 'winbox_public_port', 'webfig_public_port']),
         ]);

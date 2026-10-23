@@ -42,6 +42,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | IKEv2 (mobile VPN)
+    |--------------------------------------------------------------------------
+    |
+    | hwdsl2 defaults: L2TP on 192.168.42.0/24, IKEv2 on 192.168.43.0/24.
+    | Certificate files below are managed by strongswan (hwdsl2 layout).
+    |
+    */
+
+    'ikev2' => [
+        'subnet' => env('VPNPANEL_IKEV2_SUBNET', '192.168.43.0/24'),
+        'server_ip' => env('VPNPANEL_IKEV2_SERVER_IP', '192.168.43.1'),
+        'range_start' => env('VPNPANEL_IKEV2_RANGE_START', '192.168.43.200'),
+        'range_end' => env('VPNPANEL_IKEV2_RANGE_END', '192.168.43.250'),
+        'ca_cert_path' => env('VPNPANEL_IKEV2_CA_CERT', '/etc/ipsec.d/certs/ca-cert.pem'),
+        'ca_key_path' => env('VPNPANEL_IKEV2_CA_KEY', '/etc/ipsec.d/private/ca-key.pem'),
+        'ca_serial_path' => env('VPNPANEL_IKEV2_CA_SERIAL', '/etc/ipsec.d/certs/ca-serial'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Process execution (sudo)
     |--------------------------------------------------------------------------
     |
