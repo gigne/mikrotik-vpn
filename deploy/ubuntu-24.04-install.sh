@@ -206,6 +206,11 @@ chown "$APP_USER:$APP_USER" /etc/nginx/conf.d/mikrotik.conf /etc/nginx/stream.d/
 chown root:"$APP_USER" /etc/nginx /etc/nginx/conf.d /etc/nginx/stream.d
 chmod 0775 /etc/nginx /etc/nginx/conf.d /etc/nginx/stream.d
 
+# Log dir must exist before ReadWritePaths is applied: a missing path makes
+# php-fpm fail with status=226/NAMESPACE.
+mkdir -p /var/log/vpnpanel
+chown -R "$APP_USER:$APP_USER" /var/log/vpnpanel
+
 # Override PHP-FPM systemd sandbox (ProtectSystem=full blocks writes to /etc)
 FPM_OVERRIDE_DIR="/etc/systemd/system/php${PHP_FPM_VERSION}-fpm.service.d"
 mkdir -p "$FPM_OVERRIDE_DIR"
@@ -214,6 +219,38 @@ cat > "$FPM_OVERRIDE_DIR/override.conf" <<EOF
 ReadWritePaths=/etc/ppp /etc/nginx /var/backups/vpn-panel /var/log/vpnpanel
 EOF
 systemctl daemon-reload
+
+# PHP-FPM pool must run as $APP_USER so it can directly write the panel-owned
+# files (/etc/ppp/chap-secrets, /etc/nginx/conf.d/mikrotik.conf, etc.).
+# Default www.conf runs as www-data; patch user/group/listen owner in-place
+# (idempotent: sed only matches www-data so re-runs are safe).
+FPM_POOL="/etc/php/${PHP_FPM_VERSION}/fpm/pool.d/www.conf"
+sed -i "s/^user = www-data/user = ${APP_USER}/" "$FPM_POOL"
+sed -i "s/^group = www-data/group = ${APP_USER}/" "$FPM_POOL"
+sed -i "s/^listen\.owner = www-data/listen.owner = ${APP_USER}/" "$FPM_POOL"
+sed -i "s/^listen\.group = www-data/listen.group = ${APP_USER}/" "$FPM_POOL"
+echo "    PHP-FPM pool: user/group = ${APP_USER}"
+
+# Nginx worker (www-data) needs read access to the FPM socket (mode 0660).
+# Adding www-data to the vpnpanel group is enough; nginx -s reload picks it up
+# immediately because the master process respawns workers.
+usermod -aG "$APP_USER" www-data || true
+
+# /run/php must be traversable by vpnpanel group so FPM can create the socket
+# and nginx can connect. Runtime tmpfs is re-created on boot by
+# /usr/lib/tmpfiles.d/php*.conf (which sets it root:root 0755) — override once.
+# On next boot php-fpm start will recreate the socket inside the dir.
+chown root:"$APP_USER" /run/php 2>/dev/null || true
+chmod 0775 /run/php 2>/dev/null || true
+
+# Make /run/php group ownership survive reboots: tmpfiles.d recreates /run/php
+# on boot (root:root 0755); override with a higher-priority snippet.
+cat > /etc/tmpfiles.d/php-vpnpanel.conf <<EOF
+# /run/php must be group-vpnpanel so FPM socket (0660 vpnpanel:vpnpanel) is
+# accessible by nginx worker (www-data, member of vpnpanel group).
+d /run/php 0775 root vpnpanel - -
+EOF
+
 systemctl restart "php${PHP_FPM_VERSION}-fpm"
 
 # Idempotently add the top-level stream include for the panel's Winbox proxies.
@@ -245,7 +282,6 @@ echo "==> Permissions: atomic-write helper + sudoers"
 # The panel owns the target *files* but their parent dirs (/etc/ppp, /etc/nginx)
 # stay root-owned. A dedicated sudo helper writes via stdin so secrets never
 # appear in argv or /proc/<pid>/cmdline.
-cp "$APP_DIR/deploy/vpnpanel-atomic-write" /var/www/vpnpanel/deploy/vpnpanel-atomic-write
 chmod 0755 /var/www/vpnpanel/deploy/vpnpanel-atomic-write
 chown "$APP_USER:$APP_USER" /var/www/vpnpanel/deploy/vpnpanel-atomic-write
 
