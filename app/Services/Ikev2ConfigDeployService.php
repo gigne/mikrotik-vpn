@@ -23,7 +23,16 @@ class Ikev2ConfigDeployService
      */
     public function deploy(): void
     {
-        $users = Ikev2User::active()->get();
+            if (config('vpnpanel.ikev2.auth_mode', 'certificate') === 'certificate') {
+                // hwdsl2/Libreswan already accepts any client certificate issued by
+                // the server CA through `conn ikev2-cp` (rightca=%same), so there is
+                // no per-user ipsec configuration to write.
+                Log::info('IKEv2 auth mode is certificate; skipping per-user ipsec config deploy');
+
+                return;
+            }
+
+            $users = Ikev2User::active()->get();
 
         $ipsecConf = $this->generateIpsecConf($users);
         $ipsecSecrets = $this->generateIpsecSecrets($users);

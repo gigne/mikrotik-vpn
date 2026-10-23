@@ -83,7 +83,44 @@ sudo nginx -t                                    # OK
 ipsec status                                     # tetap normal
 ```
 
-## 7. HTTPS opsional
+## 7. IKEv2 (klien mobile) — auth berbasis sertifikat
+
+Panel menandatangani sertifikat klien dengan **CA server yang sudah ada**
+(layout hwdsl2), sehingga klien langsung diterima oleh `conn ikev2-cp`
+(`rightca=%same`). Tidak ada konfigurasi ipsec per-user yang perlu ditulis.
+
+Sekali per server:
+
+```bash
+# Ekspor CA + private key dari NSS DB milik strongswan/Libreswan
+sudo -i
+cd /tmp
+pk12util -o ca.p12 -n 'IKEv2 VPN CA' -d sql:/etc/ipsec.d -W ''
+openssl pkcs12 -in ca.p12 -passin pass: -nodes -nokeys  -out ca-cert.pem
+openssl pkcs12 -in ca.p12 -passin pass: -nodes -nocerts -out ca-key.pem
+
+install -o root -g root     -m 0644 ca-cert.pem /etc/ipsec.d/certs/ca-cert.pem
+install -o root -g vpnpanel -m 0640 ca-key.pem  /etc/ipsec.d/private/ca-key.pem
+chown root:vpnpanel /etc/ipsec.d/certs/ca-serial
+chmod 0664 /etc/ipsec.d/certs/ca-serial
+rm -f ca.p12 ca-cert.pem ca-key.pem
+```
+
+Set identitas publik yang harus diverifikasi klien (samakan dengan SAN
+sertifikat server dan `leftid` di `/etc/ipsec.d/ikev2.conf`):
+
+```
+VPNPANEL_IKEV2_SERVER_ID=203.0.113.10
+```
+
+Lalu `php artisan config:cache`. Jalankan `php artisan ikev2:generate-ca`
+hanya bila server belum punya CA sendiri (akan membuat CA baru).
+
+Catatan: `VPNPANEL_IKEV2_AUTH_MODE=certificate` (default) tidak menyentuh
+`/etc/ipsec.d/*.conf`. Set ke `eap` hanya untuk instalasi strongSwan yang
+memang memakai EAP-MSCHAPv2.
+
+## 8. HTTPS opsional
 
 Gunakan certbot untuk sertifikat panel:
 

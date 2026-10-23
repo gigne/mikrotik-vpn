@@ -216,7 +216,7 @@ FPM_OVERRIDE_DIR="/etc/systemd/system/php${PHP_FPM_VERSION}-fpm.service.d"
 mkdir -p "$FPM_OVERRIDE_DIR"
 cat > "$FPM_OVERRIDE_DIR/override.conf" <<EOF
 [Service]
-ReadWritePaths=/etc/ppp /etc/nginx /var/backups/vpn-panel /var/log/vpnpanel
+ReadWritePaths=/etc/ppp /etc/nginx /var/backups/vpn-panel /var/log/vpnpanel /etc/ipsec.d/certs
 EOF
 systemctl daemon-reload
 

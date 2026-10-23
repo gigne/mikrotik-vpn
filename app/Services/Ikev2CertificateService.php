@@ -125,18 +125,24 @@ class Ikev2CertificateService
         }
 
         $serial = $this->nextAvailableSerial();
+            $configPath = $this->writeClientCertificateConfig($this->commonNameOf($csr));
 
-        $certificate = openssl_csr_sign(
-            $csr,
-            $caCert,
-            $caKey,
-            $days,
-            [
-                'digest_alg' => 'sha256',
-                'x509_extensions' => 'usr_cert',
-            ],
-            $serial
-        );
+            try {
+                $certificate = openssl_csr_sign(
+                    $csr,
+                    $caCert,
+                    $caKey,
+                    $days,
+                    [
+                        'digest_alg' => 'sha256',
+                        'x509_extensions' => 'v3_client',
+                        'config' => $configPath,
+                    ],
+                    $serial
+                );
+            } finally {
+                @unlink($configPath);
+            }
 
         if ($certificate === false) {
             throw new \RuntimeException('Failed to sign certificate: ' . openssl_error_string());
@@ -150,7 +156,57 @@ class Ikev2CertificateService
     }
 
     /**
-     * Allocate a serial that is unique both in the serial file and in the DB.
+         * Read the common name (username) out of a PEM encoded CSR.
+         */
+        private function commonNameOf(string $csr): string
+        {
+            $info = openssl_csr_get_subject($csr);
+
+            if ($info === false || ! isset($info['CN'])) {
+                throw new \RuntimeException('Unable to read common name from CSR');
+            }
+
+            return (string) $info['CN'];
+        }
+
+        /**
+         * Write a temporary OpenSSL config that mirrors the client certificate
+         * profile used by hwdsl2 (SAN + client/server EKU + keyUsage).
+         */
+        private function writeClientCertificateConfig(string $commonName): string
+        {
+            $dir = storage_path('app/ikev2');
+
+            if (! is_dir($dir) && ! @mkdir($dir, 0700, true) && ! is_dir($dir)) {
+                throw new \RuntimeException("Unable to create directory {$dir}");
+            }
+
+            // SAN must be a DNS-safe label, mirrors the hwdsl2 profile layout.
+            $san = preg_replace('/[^A-Za-z0-9.-]/', '-', $commonName) ?: 'client';
+            $configPath = $dir . '/openssl-' . bin2hex(random_bytes(6)) . '.cnf';
+
+            $config = <<<CNF
+    [ req ]
+    distinguished_name = req_dn
+    [ req_dn ]
+    [ v3_client ]
+    basicConstraints = CA:FALSE
+    keyUsage = digitalSignature, keyEncipherment
+    extendedKeyUsage = serverAuth, clientAuth
+    subjectAltName = DNS:{$san}
+    subjectKeyIdentifier = hash
+    authorityKeyIdentifier = keyid,issuer
+    CNF;
+
+            if (file_put_contents($configPath, $config) === false) {
+                throw new \RuntimeException("Unable to write OpenSSL config to {$configPath}");
+            }
+
+            return $configPath;
+        }
+
+        /**
+         * Allocate a serial that is unique both in the serial file and in the DB.
      *
      * The serial file can be stale (for example when the panel process cannot
      * write to /etc/ipsec.d), so the database is treated as the source of
@@ -240,8 +296,14 @@ class Ikev2CertificateService
     public function generateMobileConfig(Ikev2User $user, string $serverAddress): string
     {
         $uuid = strtoupper((string) Str::uuid());
-        
-        $mobileConfig = '<?xml version="1.0" encoding="UTF-8"?>
+                $p12Password = bin2hex(random_bytes(12));
+                $p12 = '';
+
+                if (! openssl_pkcs12_export($user->certificate_pem, $p12, $user->private_key_pem, $p12Password)) {
+                    throw new \RuntimeException('Failed to build client identity: ' . openssl_error_string());
+                }
+
+                $mobileConfig = '<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -337,18 +399,22 @@ class Ikev2CertificateService
             <key>PayloadCertificateFileName</key>
             <string>' . htmlspecialchars($user->username) . '</string>
             <key>PayloadContent</key>
-            <data>' . base64_encode($user->private_key_pem) . '</data>
-            <key>PayloadDescription</key>
-            <string>VPN Private Key</string>
-            <key>PayloadIdentifier</key>
-            <string>com.apple.security.pkcs1.' . Str::uuid() . '</string>
-            <key>PayloadType</key>
-            <string>com.apple.security.pkcs1</string>
-            <key>PayloadUUID</key>
-            <string>' . $uuid . '-CERT</string>
-            <key>PayloadVersion</key>
-            <integer>1</integer>
-        </dict>
+                    <data>' . base64_encode($p12) . '</data>
+                    <key>Password</key>
+                    <string>' . $p12Password . '</string>
+                    <key>PayloadDescription</key>
+                    <string>Adds a PKCS#12-formatted certificate</string>
+                    <key>PayloadDisplayName</key>
+                    <string>' . htmlspecialchars($user->username) . '</string>
+                    <key>PayloadIdentifier</key>
+                    <string>com.apple.security.pkcs12.' . Str::uuid() . '</string>
+                    <key>PayloadType</key>
+                    <string>com.apple.security.pkcs12</string>
+                    <key>PayloadUUID</key>
+                    <string>' . $uuid . '-CERT</string>
+                    <key>PayloadVersion</key>
+                    <integer>1</integer>
+                </dict>
         <dict>
             <key>PayloadCertificateFileName</key>
             <string>CA Certificate</string>

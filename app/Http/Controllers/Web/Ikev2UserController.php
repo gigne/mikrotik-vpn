@@ -153,7 +153,7 @@ class Ikev2UserController extends Controller
             abort(404, 'Certificate not available');
         }
 
-        $serverAddress = config('vpnpanel.domain', 'vpn.example.com');
+        $serverAddress = config('vpnpanel.ikev2.server_id', config('vpnpanel.domain', 'vpn.example.com'));
         $mobileConfig = $this->certService->generateMobileConfig($ikev2User, $serverAddress);
 
         return response($mobileConfig, 200, [

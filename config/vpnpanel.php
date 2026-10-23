@@ -58,7 +58,16 @@ return [
         'ca_cert_path' => env('VPNPANEL_IKEV2_CA_CERT', '/etc/ipsec.d/certs/ca-cert.pem'),
         'ca_key_path' => env('VPNPANEL_IKEV2_CA_KEY', '/etc/ipsec.d/private/ca-key.pem'),
         'ca_serial_path' => env('VPNPANEL_IKEV2_CA_SERIAL', '/etc/ipsec.d/certs/ca-serial'),
-    ],
+
+                // Public identity clients must verify: has to match the server
+        // certificate SAN and `leftid` in the hwdsl2 `conn ikev2-cp`.
+        'server_id' => env('VPNPANEL_IKEV2_SERVER_ID', env('VPNPANEL_DOMAIN', 'vpn.example.com')),
+
+        // "certificate" (hwdsl2 default): clients authenticate with a cert
+                // signed by the server CA, so no per-user ipsec config is needed.
+                // "eap": per-user ipsec.conf/ipsec.secrets entries are deployed.
+                'auth_mode' => env('VPNPANEL_IKEV2_AUTH_MODE', 'certificate'),
+            ],
 
     /*
     |--------------------------------------------------------------------------
