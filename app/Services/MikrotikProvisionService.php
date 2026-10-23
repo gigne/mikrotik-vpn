@@ -183,8 +183,6 @@ class MikrotikProvisionService
             return $mikrotik->fresh();
         });
     }
-        });
-    }
 
     /**
      * Decommission MikroTik and release all resources.
