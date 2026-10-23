@@ -41,7 +41,7 @@ class DashboardController extends Controller
                 'active' => $ikev2Active,
             ],
             'recentActivity' => AuditLog::with('user')->latest('created_at')->limit(10)->get(),
-            'sites' => Mikrotik::orderBy('site_name')->get(['site_name', 'vpn_ip', 'is_online', 'last_seen_at', 'winbox_public_port', 'webfig_public_port']),
+            'sites' => Mikrotik::with('vpnUser')->orderBy('site_name')->get(['site_name', 'is_online', 'last_seen_at', 'winbox_public_port', 'webfig_public_port']),
         ]);
     }
 

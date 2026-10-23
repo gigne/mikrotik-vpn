@@ -74,10 +74,7 @@ class IpAllocatorService
      */
     public function isIpInUse(string $ip): bool
     {
-        $vpnUserInUse = VpnUser::withTrashed()->where('assigned_ip', $ip)->exists();
-        $mikrotikInUse = Mikrotik::withTrashed()->where('vpn_ip', $ip)->exists();
-
-        return $vpnUserInUse || $mikrotikInUse;
+        return VpnUser::withTrashed()->where('assigned_ip', $ip)->exists();
     }
 
     /**
@@ -87,10 +84,7 @@ class IpAllocatorService
      */
     public function getUsedIps(): array
     {
-        $vpnIps = VpnUser::withTrashed()->pluck('assigned_ip')->filter()->toArray();
-        $mikrotikIps = Mikrotik::withTrashed()->pluck('vpn_ip')->filter()->toArray();
-
-        return array_unique(array_merge($vpnIps, $mikrotikIps));
+        return VpnUser::withTrashed()->pluck('assigned_ip')->filter()->toArray();
     }
 
     /**
@@ -99,7 +93,6 @@ class IpAllocatorService
     public function release(string $ip): void
     {
         VpnUser::where('assigned_ip', $ip)->update(['assigned_ip' => null]);
-        Mikrotik::where('vpn_ip', $ip)->delete();
 
         $this->auditLog->log('ip_released', null, ['ip' => $ip]);
         Log::info("IP released: {$ip}");

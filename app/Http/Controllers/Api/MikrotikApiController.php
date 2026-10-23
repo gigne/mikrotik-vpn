@@ -9,7 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Mikrotik\StoreMikrotikRequest;
 use App\Http\Requests\Mikrotik\UpdateMikrotikRequest;
 use App\Models\Mikrotik;
-use App\Services\MikrotikProvisionService;
+use App\Models\VpnUser;
 use App\Services\RouterOSGeneratorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
