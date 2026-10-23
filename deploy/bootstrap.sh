@@ -152,6 +152,33 @@ else
 fi
 grep -E '^(ip range|local ip)' "$XL2TPD_CONF" | sed 's/^/    /'
 
+# hwdsl2 only configures NAT + IPsec bypass for its own 192.168.42/43 subnets.
+# Because the panel's L2TP pool now lives on ${VPN_SUBNET}.0/24, mirror those
+# settings onto the new subnet so VPN clients get internet egress and are not
+# treated as "virtual private" (which would make IPsec bypass them).
+VPN_NET="${VPN_SUBNET}.0/24"
+IFACE=$(ip route get 1.1.1.1 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}')
+IFACE=${IFACE:-eth0}
+log "    ensuring MASQUERADE + FORWARD for ${VPN_NET} via ${IFACE}"
+MASQ_RULE="-s ${VPN_NET} ! -d ${VPN_NET} -o ${IFACE} -j MASQUERADE"
+if ! iptables -t nat -C POSTROUTING ${MASQ_RULE} 2>/dev/null; then
+    iptables -t nat -A POSTROUTING ${MASQ_RULE}
+fi
+for f in "-s ${VPN_NET} -o ${IFACE} -j ACCEPT" \
+         "-d ${VPN_NET} -i ${IFACE} -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT"; do
+    iptables -C FORWARD ${f} 2>/dev/null || iptables -I FORWARD ${f}
+done
+if command -v netfilter-persistent >/dev/null 2>&1; then
+    netfilter-persistent save >/dev/null && echo "    NAT rules persisted"
+fi
+# Add the panel subnet to the IPsec "virtual-private" exclusion list so traffic
+# to/from the VPN pool is not excluded from encryption by mistake.
+if ! grep -q "!${VPN_NET}" /etc/ipsec.conf; then
+    sed -i "/virtual-private=/ s|,%v6:fc00::/7|,%v4:!${VPN_NET},%v6:fc00::/7|" /etc/ipsec.conf
+    systemctl restart ipsec
+    echo "    virtual-private updated for ${VPN_NET}"
+fi
+
 # ---------------------------------------------------------------------------
 log "Step 5/6: panel installation"
 if [ ! -f "$INSTALL_SCRIPT" ]; then
