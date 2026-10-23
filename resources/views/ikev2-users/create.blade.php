@@ -30,10 +30,11 @@
                             <p class="mt-1 text-xs text-gray-400">Unique identifier for IKEv2 authentication.</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Password</label>
-                            <input type="password" name="password" required minlength="8" maxlength="64"
+                            <label class="block text-sm font-medium text-gray-700">Password (opsional)</label>
+                            <input type="password" name="password" maxlength="64"
+                                   id="ikev2_password"
                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <p class="mt-1 text-xs text-gray-400">Minimum 8 characters for EAP-MSCHAPv2.</p>
+                            <p class="mt-1 text-xs text-gray-400">Kosongkan untuk auto-generate random password (min 8 karakter jika diisi).</p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">VPN IP (optional)</label>

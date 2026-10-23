@@ -19,6 +19,10 @@
 /storage/*.key
 /storage/pail
 /vendor
+
+# Deployment artifacts
+*.tar.gz
+
 Homestead.json
 Homestead.yaml
 Thumbs.db

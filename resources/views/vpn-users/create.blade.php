@@ -17,10 +17,10 @@
 
                 <div>
                     <label class="block font-medium text-sm text-gray-700">Password</label>
-                    <input type="text" name="password" value="{{ old('password') }}" required
+                    <input type="text" name="password" value="{{ old('password') }}"
                            class="mt-1 block w-full border-gray-300 rounded-md text-sm font-mono" placeholder="auto-generate if empty">
                     @error('password') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                    <p class="text-xs text-gray-400 mt-1">8-64 chars. Written to /etc/ppp/chap-secrets.</p>
+                    <p class="text-xs text-gray-400 mt-1">Leave empty to auto-generate. If filled: 8-64 chars. Written to /etc/ppp/chap-secrets.</p>
                 </div>
 
                 <div>

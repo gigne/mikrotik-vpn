@@ -13,7 +13,7 @@ class StoreVpnUserRequest extends FormRequest
     {
         return [
             'username' => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z0-9_-]+$/', 'unique:vpn_users,username'],
-            'password' => ['required', 'string', 'min:8', 'max:64'],
+            'password' => ['nullable', 'string', 'min:8', 'max:64'],
             'assigned_ip' => ['nullable', 'ipv4'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'expired_at' => ['nullable', 'date'],

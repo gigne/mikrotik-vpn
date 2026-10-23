@@ -47,12 +47,17 @@ class Ikev2UserController extends Controller
     {
         $validated = $request->validate([
             'username' => 'required|string|max:255|unique:ikev2_users,username',
-            'password' => 'required|string|min:8|max:64',
+            'password' => 'nullable|string|min:8|max:64',
             'assigned_ip' => 'nullable|ipv4',
             'notes' => 'nullable|string|max:1000',
             'expired_at' => 'nullable|date|after:today',
             'is_enabled' => 'nullable|boolean',
         ]);
+
+        // Auto-generate a random password when empty.
+        if ($validated['password'] === null || $validated['password'] === '') {
+            $validated['password'] = \Illuminate\Support\Str::random(16);
+        }
 
         try {
             $data = new Ikev2UserData(
@@ -66,8 +71,9 @@ class Ikev2UserController extends Controller
 
             $this->provisionService->create($data);
 
-                        return redirect()->route('ikev2-users.index')
-                            ->with('success', 'IKEv2 user created successfully');
+            return redirect()->route('ikev2-users.index')
+                ->with('success', 'IKEv2 user created successfully')
+                ->with('generated_password', $validated['password']);
                     } catch (\Throwable $e) {
                         Log::error('IKEv2 store failed: ' . $e->getMessage(), $validated);
 
@@ -107,10 +113,17 @@ class Ikev2UserController extends Controller
             'is_enabled' => 'nullable|boolean',
         ]);
 
+        if ($validated['password'] !== null && $validated['password'] !== '') {
+            // Password was provided — use it directly.
+        } else {
+            // Blank password in edit form means "keep current password".
+            $validated['password'] = $ikev2User->password;
+        }
+
         try {
             $data = new Ikev2UserData(
                 username: $validated['username'],
-                password: $validated['password'] ?? '',
+                password: $validated['password'],
                 assignedIp: $validated['assigned_ip'] ?? null,
                 notes: $validated['notes'] ?? null,
                 expiredAt: isset($validated['expired_at']) ? now()->parse($validated['expired_at']) : null,

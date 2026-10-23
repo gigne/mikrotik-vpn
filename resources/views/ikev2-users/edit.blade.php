@@ -26,7 +26,7 @@
                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">New Password (leave blank)</label>
+                            <label class="block text-sm font-medium text-gray-700">New Password (kosongkan untuk tetap pakai yang lama)</label>
                             <input type="password" name="password" minlength="8" maxlength="64"
                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </div>

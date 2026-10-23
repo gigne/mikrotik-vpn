@@ -14,7 +14,14 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-4">
             @if (session('success'))
-                <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded">{{ session('success') }}</div>
+                <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded">
+                    {{ session('success') }}
+                    @if (session('generated_password'))
+                        &nbsp;<span class="font-mono text-sm font-semibold">• Password auto-generated:
+                            <span class="select-all">{{ session('generated_password') }}</span>
+                        </span>
+                    @endif
+                </div>
             @endif
 
             <div class="bg-white shadow-sm rounded-lg overflow-hidden">
