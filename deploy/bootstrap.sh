@@ -168,6 +168,15 @@ for f in "-s ${VPN_NET} -o ${IFACE} -j ACCEPT" \
          "-d ${VPN_NET} -i ${IFACE} -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT"; do
     iptables -C FORWARD ${f} 2>/dev/null || iptables -I FORWARD ${f}
 done
+# Enable inter-VPN communication: allow L2TP pool (192.168.42.0/24) to talk
+# with mobile IKEv2 pool (192.168.43.0/24). This is required so that clients
+# connected via different protocols can reach each other.
+L2TP_NET="192.168.42.0/24"
+IKEV2_NET="192.168.43.0/24"
+iptables -C FORWARD -s ${L2TP_NET} -d ${IKEV2_NET} -j ACCEPT 2>/dev/null || \
+    iptables -I FORWARD -s ${L2TP_NET} -d ${IKEV2_NET} -j ACCEPT
+iptables -C FORWARD -s ${IKEV2_NET} -d ${L2TP_NET} -j ACCEPT 2>/dev/null || \
+    iptables -I FORWARD -s ${IKEV2_NET} -d ${L2TP_NET} -j ACCEPT
 if command -v netfilter-persistent >/dev/null 2>&1; then
     netfilter-persistent save >/dev/null && echo "    NAT rules persisted"
 fi
@@ -175,8 +184,15 @@ fi
 # to/from the VPN pool is not excluded from encryption by mistake.
 if ! grep -q "!${VPN_NET}" /etc/ipsec.conf; then
     sed -i "/virtual-private=/ s|,%v6:fc00::/7|,%v4:!${VPN_NET},%v6:fc00::/7|" /etc/ipsec.conf
-    systemctl restart ipsec
     echo "    virtual-private updated for ${VPN_NET}"
+fi
+# Also ensure hwdsl2's IKEv2 subnet (192.168.43.0/24) is excluded from the
+# "virtual-private" bypass, so inter-VPN traffic between L2TP and IKEv2 can
+# flow properly through the IPsec stack.
+if ! grep -q "!192.168.43.0/24" /etc/ipsec.conf; then
+    sed -i "/virtual-private=/ s|,%v4:!${VPN_NET},%v6:fc00::/7|,%v4:!${VPN_NET},!192.168.43.0/24,%v6:fc00::/7|" /etc/ipsec.conf
+    systemctl restart ipsec
+    echo "    virtual-private updated for 192.168.43.0/24 (IKEv2)"
 fi
 
 # ---------------------------------------------------------------------------
