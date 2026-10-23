@@ -181,6 +181,9 @@ fi
 touch /etc/ppp/chap-secrets
 chown "$APP_USER:$APP_USER" /etc/ppp/chap-secrets
 chmod 0600 /etc/ppp/chap-secrets
+# Parent dir /etc/ppp must be group-writable so atomic temp files can be created
+chown root:"$APP_USER" /etc/ppp
+chmod 0775 /etc/ppp
 
 echo "==> Nginx: virtual host + panel-owned config files"
 cp "$APP_DIR/deploy/nginx-vpnpanel.conf" /etc/nginx/sites-available/vpnpanel
@@ -196,6 +199,19 @@ cp "$APP_DIR/deploy/nginx-vpnpanel-http.conf" /etc/nginx/conf.d/vpnpanel-http.co
 mkdir -p /etc/nginx/conf.d
 touch /etc/nginx/conf.d/mikrotik.conf /etc/nginx/stream-proxy.conf
 chown "$APP_USER:$APP_USER" /etc/nginx/conf.d/mikrotik.conf /etc/nginx/stream-proxy.conf
+# Parent dirs must be group-writable so atomic temp files can be created
+chown root:"$APP_USER" /etc/nginx /etc/nginx/conf.d
+chmod 0775 /etc/nginx /etc/nginx/conf.d
+
+# Override PHP-FPM systemd sandbox (ProtectSystem=full blocks writes to /etc)
+FPM_OVERRIDE_DIR="/etc/systemd/system/php${PHP_FPM_VERSION}-fpm.service.d"
+mkdir -p "$FPM_OVERRIDE_DIR"
+cat > "$FPM_OVERRIDE_DIR/override.conf" <<EOF
+[Service]
+ReadWritePaths=/etc/ppp /etc/nginx /var/backups/vpn-panel /var/log/vpnpanel
+EOF
+systemctl daemon-reload
+systemctl restart "php${PHP_FPM_VERSION}-fpm"
 
 # Idempotently add the top-level include for the panel's stream proxies.
 # NOTE: ngx_stream_module is already loaded by nginx-extras (50-mod-stream.conf);
