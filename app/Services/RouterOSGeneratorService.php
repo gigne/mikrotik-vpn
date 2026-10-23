@@ -45,6 +45,10 @@ class RouterOSGeneratorService
 # Align the default proposal with the server before bringing the tunnel up.
 /ip ipsec proposal set [find default=yes] pfs-group=modp2048
 
+# IPsec Phase 1 compatibility: align profile with the server's ike proposal
+# aes256-sha2;modp2048 and no PFS (server uses pfs=no in conn shared).
+/ip ipsec profile set [find default=yes] dh-group=modp2048 hash-algorithm=sha256
+
 # Create L2TP client interface
 /interface l2tp-client add \\
     name={$ifName} \\
