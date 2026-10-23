@@ -2,10 +2,11 @@
 # =========================================================================
 # VPN Panel — Ubuntu 24.04 installation script
 #
-# Installs PHP 8.5 (or 8.3 fallback), MariaDB, Nginx (+ stream module), the
-# panel code, and configures it as the central control panel for your
-# hwdsl2/setup-ipsec-vpn server. Set VPNPANEL_DRIVER=local so the panel
-# writes directly to /etc/ppp/chap-secrets, the nginx configs and systemd.
+# Installs PHP 8.5 (or 8.3 fallback), Nginx (+ stream module), SQLite
+# (no external database required), the panel code, and configures it as the
+# central control panel for your hwdsl2/setup-ipsec-vpn server.
+# Set VPNPANEL_DRIVER=local so the panel writes directly to
+# /etc/ppp/chap-secrets, the nginx configs and systemd.
 #
 # Run as root:
 #   sudo bash deploy/ubuntu-24.04-install.sh
@@ -16,7 +17,6 @@ APP_DIR="/var/www/vpnpanel"
 APP_USER="vpnpanel"
 DOMAIN="${VPNPANEL_DOMAIN:-vpn.example.com}"
 SRC_DIR="${VPNPANEL_SRC_DIR:-/opt/vpnpanel-src}"
-DB_PASS="${VPNPANEL_DB_PASS:-changeme-db-password}"
 PSK="${VPNPANEL_PSK:-changeme-strong-psk}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-changeme-admin-password}"
@@ -28,7 +28,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get install -y \
     software-properties-common curl git unzip nginx nginx-extras \
-    mariadb-server supervisor ca-certificates cron
+    php8.5-sqlite3 supervisor ca-certificates cron
 
 echo "==> Installing PHP (prefers 8.5 via ppa:ondrej/php, falls back to 8.3)"
 if ! command -v php8.5 >/dev/null 2>&1; then
@@ -73,20 +73,25 @@ if [ -d "$APP_DIR" ]; then
     rm -rf "$APP_DIR"
     cp -a "$SRC_DIR" "$APP_DIR"
     [ -f "$STAGING/.env" ] && cp -a "$STAGING/.env" "$APP_DIR/.env"
-    [ -d "$STAGING/logs" ] && cp -a "$STAGING/logs/." "$APP_DIR/storage/logs/"
+    if [ -d "$STAGING/logs" ]; then
+        mkdir -p "$APP_DIR/storage/logs"
+        cp -a "$STAGING/logs/." "$APP_DIR/storage/logs/"
+    fi
     rm -rf "$STAGING"
 else
+    mkdir -p "$APP_DIR/storage/logs"
     cp -a "$SRC_DIR" "$APP_DIR"
+    chown -R "$APP_USER:$APP_USER" "$APP_DIR/storage"
 fi
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
 echo "==> Installing PHP dependencies"
 sudo -u "$APP_USER" composer install --no-dev --optimize-autoloader --no-interaction -d "$APP_DIR"
 
-echo "==> Configuring MariaDB"
-mysql -e "CREATE DATABASE IF NOT EXISTS vpnpanel CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -e "CREATE USER IF NOT EXISTS 'vpnpanel'@'localhost' IDENTIFIED BY '${DB_PASS}';"
-mysql -e "GRANT ALL PRIVILEGES ON vpnpanel.* TO 'vpnpanel'@'localhost'; FLUSH PRIVILEGES;"
+echo "==> Ensuring SQLite database directory exists"
+mkdir -p "$(dirname "$APP_DIR/database.sqlite")"
+touch "$APP_DIR/database.sqlite"
+chown -R "$APP_USER:$APP_USER" "$APP_DIR/database.sqlite" "$APP_DIR/storage"
 
 echo "==> Writing environment file"
 # Preserve APP_KEY on re-runs: it encrypts stored MikroTik VPN passwords, so
@@ -106,15 +111,11 @@ APP_URL=http://${DOMAIN}
 LOG_CHANNEL=stack
 LOG_LEVEL=warning
 
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=vpnpanel
-DB_USERNAME=vpnpanel
-DB_PASSWORD=${DB_PASS}
+DB_CONNECTION=sqlite
+DB_DATABASE=${APP_DIR}/database.sqlite
 
-CACHE_STORE=database
-SESSION_DRIVER=database
+CACHE_STORE=file
+SESSION_DRIVER=file
 QUEUE_CONNECTION=database
 
 # --- Auto-generated VPN files ---
@@ -297,7 +298,6 @@ echo " Panel URL:        http://${DOMAIN}  (add HTTPS via certbot)"
 echo " Admin login:      ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}"
 echo " Operator login:   ${OPERATOR_EMAIL} / ${OPERATOR_PASSWORD}"
 echo " IPsec PSK:        ${PSK}"
-echo " DB password:      ${DB_PASS}"
 echo ""
 echo " IMPORTANT: change the admin password immediately."
 echo " Managed files:"
