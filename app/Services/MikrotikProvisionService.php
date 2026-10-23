@@ -143,10 +143,31 @@ class MikrotikProvisionService
                     ->update(['assigned_ip' => $data['vpn_ip']]);
             }
 
-            // Deploy changes
+            // If public ports changed, sync the NginxMapping records
+            $newWinboxPort = $data['winbox_public_port'] ?? null;
+            $newWebfigPort = $data['webfig_public_port'] ?? null;
+            $oldWinboxPort = (int)($oldData['winbox_public_port'] ?? 0);
+            $oldWebfigPort = (int)($oldData['webfig_public_port'] ?? 0);
+
+            if ($newWinboxPort !== null && (int)$newWinboxPort !== $oldWinboxPort) {
+                Log::info("Updating winbox public port: {$oldWinboxPort} -> {$newWinboxPort} for Mikrotik #{$mikrotik->id}");
+                $mikrotik->nginxMappings()
+                    ->where('conn_type', 'winbox')
+                    ->update(['public_port' => $newWinboxPort]);
+            }
+
+            if ($newWebfigPort !== null && (int)$newWebfigPort !== $oldWebfigPort) {
+                Log::info("Updating webfig public port: {$oldWebfigPort} -> {$newWebfigPort} for Mikrotik #{$mikrotik->id}");
+                $mikrotik->nginxMappings()
+                    ->where('conn_type', 'webfig')
+                    ->update(['public_port' => $newWebfigPort]);
+            }
+
+            // Always deploy changes after update
             try {
                 $this->chapSecretsDeploy->deploy();
-                $this->nginxDeploy->deploy();
+                $result = $this->nginxDeploy->deploy();
+                Log::info('Nginx deploy result: ' . json_encode($result));
             } catch (\Exception $e) {
                 Log::warning('Deployment failed during update: ' . $e->getMessage());
             }

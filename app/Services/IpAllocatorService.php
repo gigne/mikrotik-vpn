@@ -29,6 +29,7 @@ class IpAllocatorService
         $subnet = config('vpnpanel.ip_pool.subnet');
         $rangeStart = config('vpnpanel.ip_pool.range_start');
         $rangeEnd = config('vpnpanel.ip_pool.range_end');
+        $serverIp = config('vpnpanel.ip_pool.server_ip', '192.168.47.1');
 
         if (! $this->validateSubnet($subnet)) {
                     throw new ProvisioningException("Invalid subnet: {$subnet}");
@@ -39,14 +40,18 @@ class IpAllocatorService
             if (! $this->isInRange($requestedIp, $rangeStart, $rangeEnd)) {
                         throw new ProvisioningException("IP {$requestedIp} is outside allowed range");
             }
+            // Block the server/gateway IP from being allocated
+            if ($requestedIp === $serverIp) {
+                throw new ProvisioningException("IP {$requestedIp} is reserved for the VPN gateway/server");
+            }
             if ($this->isIpInUse($requestedIp)) {
                         throw new ProvisioningException("IP {$requestedIp} is already in use");
             }
             return $requestedIp;
         }
 
-        // Auto-allocate: find first available IP
-        $usedIps = $this->getUsedIps();
+        // Auto-allocate: find first available IP (skip server IP)
+        $usedIps = array_merge($this->getUsedIps(), [$serverIp]);
         $current = ip2long($rangeStart);
         $end = ip2long($rangeEnd);
 

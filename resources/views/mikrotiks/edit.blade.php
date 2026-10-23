@@ -53,6 +53,21 @@
                     </div>
                 </div>
 
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-medium text-sm text-gray-700">Winbox Public Port</label>
+                        <input type="number" name="winbox_public_port" value="{{ old('winbox_public_port', $mikrotik->winbox_public_port) }}"
+                               class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                        @error('winbox_public_port') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block font-medium text-sm text-gray-700">WebFig Public Port</label>
+                        <input type="number" name="webfig_public_port" value="{{ old('webfig_public_port', $mikrotik->webfig_public_port) }}"
+                               class="mt-1 block w-full border-gray-300 rounded-md text-sm">
+                        @error('webfig_public_port') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
                 <div>
                     <label class="block font-medium text-sm text-gray-700">RouterOS Version</label>
                     <input type="text" name="routeros_version" value="{{ old('routeros_version', $mikrotik->routeros_version) }}"
