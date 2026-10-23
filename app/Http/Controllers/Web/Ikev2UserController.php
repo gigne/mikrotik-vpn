@@ -60,7 +60,7 @@ class Ikev2UserController extends Controller
                 assignedIp: $validated['assigned_ip'] ?? null,
                 notes: $validated['notes'] ?? null,
                 expiredAt: isset($validated['expired_at']) ? now()->parse($validated['expired_at']) : null,
-                isEnabled: $validated['is_enabled'] ?? true,
+                isEnabled: !empty($validated['is_enabled']),
             );
 
             $this->provisionService->create($data);
@@ -111,7 +111,7 @@ class Ikev2UserController extends Controller
                 assignedIp: $validated['assigned_ip'] ?? null,
                 notes: $validated['notes'] ?? null,
                 expiredAt: isset($validated['expired_at']) ? now()->parse($validated['expired_at']) : null,
-                isEnabled: $validated['is_enabled'] ?? true,
+                isEnabled: !empty($validated['is_enabled']),
             );
 
             $this->provisionService->update($ikev2User, $data);
