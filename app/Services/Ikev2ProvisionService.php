@@ -122,7 +122,7 @@ class Ikev2ProvisionService
     {
         try {
             $this->configDeploy->deploy();
-        } catch (\Exception $e) {
+                } catch (\Throwable $e) {
             Log::warning('IKEv2 config deploy failed: ' . $e->getMessage());
         }
     }

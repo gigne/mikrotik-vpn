@@ -71,11 +71,13 @@ class Ikev2CertificateService
 
         $privateKey = openssl_pkey_new($config);
         
-        if ($privateKey === null) {
+        if ($privateKey === false) {
             throw new \RuntimeException('Failed to generate private key: ' . openssl_error_string());
         }
 
-        openssl_pkey_export($privateKey, $privateKeyPem);
+        if (!openssl_pkey_export($privateKey, $privateKeyPem)) {
+            throw new \RuntimeException('Failed to export private key: ' . openssl_error_string());
+        }
 
         return $privateKeyPem;
     }
@@ -91,11 +93,13 @@ class Ikev2CertificateService
 
         $csr = openssl_csr_new($dn, $privateKey, ['digest_alg' => 'sha256']);
         
-        if ($csr === null) {
+        if ($csr === false) {
             throw new \RuntimeException('Failed to generate CSR: ' . openssl_error_string());
         }
 
-        openssl_csr_export($csr, $csrPem);
+        if (!openssl_csr_export($csr, $csrPem)) {
+            throw new \RuntimeException('Failed to export CSR: ' . openssl_error_string());
+        }
 
         return $csrPem;
     }
@@ -105,14 +109,22 @@ class Ikev2CertificateService
      */
     private function signCertificate(string $csr, string $privateKey, int $days): string
     {
-        $caCert = openssl_x509_read(file_get_contents($this->caCertPath));
-        $caKey = openssl_pkey_get(file_get_contents($this->caKeyPath));
-
-        if ($caCert === false || $caKey === false) {
-            throw new \RuntimeException('Failed to read CA certificate or key');
+        if (!is_readable($this->caCertPath)) {
+            throw new \RuntimeException("CA certificate is not readable at {$this->caCertPath}");
         }
 
-        $serial = $this->getNextSerial();
+        if (!is_readable($this->caKeyPath)) {
+            throw new \RuntimeException("CA private key is not readable at {$this->caKeyPath}");
+        }
+
+        $caCert = openssl_x509_read(file_get_contents($this->caCertPath));
+        $caKey = openssl_pkey_get_private(file_get_contents($this->caKeyPath));
+
+        if ($caCert === false || $caKey === false) {
+            throw new \RuntimeException('Failed to read CA certificate or key: ' . openssl_error_string());
+        }
+
+        $serial = $this->nextAvailableSerial();
 
         $certificate = openssl_csr_sign(
             $csr,
@@ -121,9 +133,9 @@ class Ikev2CertificateService
             $days,
             [
                 'digest_alg' => 'sha256',
-                'x509_extensions' => 'v3_ca',
-                'serialNumber' => $serial,
-            ]
+                'x509_extensions' => 'usr_cert',
+            ],
+            $serial
         );
 
         if ($certificate === false) {
@@ -138,16 +150,39 @@ class Ikev2CertificateService
     }
 
     /**
+     * Allocate a serial that is unique both in the serial file and in the DB.
+     *
+     * The serial file can be stale (for example when the panel process cannot
+     * write to /etc/ipsec.d), so the database is treated as the source of
+     * truth for already issued certificates.
+     */
+    private function nextAvailableSerial(): int
+    {
+        $serial = $this->getNextSerial();
+
+        while (Ikev2User::withTrashed()->where('certificate_serial', (string) $serial)->exists()) {
+            $serial++;
+        }
+
+        return $serial;
+    }
+
+    /**
      * Get next serial number from file.
      */
     private function getNextSerial(): int
     {
-        if (file_exists($this->caSerialFile)) {
-            $serial = trim(file_get_contents($this->caSerialFile));
-            return hexdec($serial);
+        if (is_readable($this->caSerialFile)) {
+            $serial = trim((string) file_get_contents($this->caSerialFile));
+
+            if ($serial !== '' && ctype_xdigit($serial)) {
+                return hexdec($serial);
+            }
         }
 
-        return 1;
+        // Fall back to a random serial so certificates never collide even when
+        // the serial file is missing or unreadable.
+        return random_int(1, 0x7FFFFFFF);
     }
 
     /**
@@ -156,11 +191,21 @@ class Ikev2CertificateService
     private function saveSerial(int $serial): void
     {
         $dir = dirname($this->caSerialFile);
+
         if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
+            @mkdir($dir, 0755, true);
         }
 
-        file_put_contents($this->caSerialFile, sprintf("%08X", $serial));
+        if (is_file($this->caSerialFile) && !is_writable($this->caSerialFile)) {
+            Log::warning("IKEv2 serial file is not writable: {$this->caSerialFile}");
+            return;
+        }
+
+        $written = @file_put_contents($this->caSerialFile, sprintf('%08X', $serial));
+
+        if ($written === false) {
+            Log::warning("Failed to persist IKEv2 serial to {$this->caSerialFile}");
+        }
     }
 
     /**
@@ -194,7 +239,7 @@ class Ikev2CertificateService
      */
     public function generateMobileConfig(Ikev2User $user, string $serverAddress): string
     {
-        $uuid = strtoupper(Str::uuid());
+        $uuid = strtoupper((string) Str::uuid());
         
         $mobileConfig = '<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

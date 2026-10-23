@@ -9,6 +9,12 @@
     <div class="py-12">
         <div class="max-w-xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow rounded-lg p-6">
+                @if (session('error'))
+                    <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-4">{{ session('error') }}</div>
+                @endif
+                @if (session('success'))
+                    <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded mb-4">{{ session('success') }}</div>
+                @endif
                 @if ($errors->any())
                     <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-4">
                         <ul class="list-disc list-inside text-sm">@foreach ($errors->all() as $e) <li>{{ $e }}</li> @endforeach</ul>

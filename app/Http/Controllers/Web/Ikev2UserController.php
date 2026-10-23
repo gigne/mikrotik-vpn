@@ -11,6 +11,7 @@ use App\Services\Ikev2ProvisionService;
 use App\Services\Ikev2CertificateService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class Ikev2UserController extends Controller
@@ -65,14 +66,16 @@ class Ikev2UserController extends Controller
 
             $this->provisionService->create($data);
 
-            return redirect()->route('ikev2-users.index')
-                ->with('success', 'IKEv2 user created successfully');
-        } catch (\Exception $e) {
-            return back()
-                ->withInput()
-                ->with('error', 'Failed to create IKEv2 user: ' . $e->getMessage());
-        }
-    }
+                        return redirect()->route('ikev2-users.index')
+                            ->with('success', 'IKEv2 user created successfully');
+                    } catch (\Throwable $e) {
+                        Log::error('IKEv2 store failed: ' . $e->getMessage(), $validated);
+
+                        return back()
+                            ->withInput()
+                            ->withErrors(['message' => 'Failed to create IKEv2 user: ' . $e->getMessage()]);
+                    }
+                }
 
     /**
      * Show user details.
@@ -118,10 +121,10 @@ class Ikev2UserController extends Controller
 
             return redirect()->route('ikev2-users.show', $ikev2User)
                 ->with('success', 'IKEv2 user updated successfully');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return back()
                 ->withInput()
-                ->with('error', 'Failed to update IKEv2 user: ' . $e->getMessage());
+                            ->withErrors(['message' => 'Failed to update IKEv2 user: ' . $e->getMessage()]);
         }
     }
 
@@ -135,7 +138,7 @@ class Ikev2UserController extends Controller
 
             return redirect()->route('ikev2-users.index')
                 ->with('success', 'IKEv2 user deleted successfully');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return back()
                 ->with('error', 'Failed to delete IKEv2 user: ' . $e->getMessage());
         }
@@ -168,7 +171,7 @@ class Ikev2UserController extends Controller
             $this->provisionService->regenerateCertificate($ikev2User);
 
             return back()->with('success', 'Certificate regenerated successfully');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return back()->with('error', 'Failed to regenerate certificate: ' . $e->getMessage());
         }
     }

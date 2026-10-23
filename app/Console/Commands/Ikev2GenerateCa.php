@@ -46,7 +46,7 @@ class Ikev2GenerateCa extends Command
         $config = [
             'private_key_bits' => 4096,
             'private_key_type' => OPENSSL_KEYTYPE_RSA,
-            'encrypt_key_algorithm' => OPENSSL_SSLV3_PADDING,
+            'encrypt_key_algorithm' => OPENSSL_PKCS1_PADDING,
             'encrypt_key_password' => null, // No passphrase
         ];
 
@@ -93,12 +93,12 @@ class Ikev2GenerateCa extends Command
 
         openssl_x509_export($cert, $certPem);
         File::put($caCertPath, $certPem);
-        chmod($caCertPath, 0644);
+        $this->applyPermissions($dir, $caCertPath, $caKeyPath, $serialFile);
         $this->info("✓ CA certificate saved to: {$caCertPath}");
 
         // Initialize serial file
         File::put($serialFile, '1000');
-        chmod($serialFile, 0644);
+        $this->applyPermissions($dir, $caCertPath, $caKeyPath, $serialFile);
         $this->info("✓ Serial file created at: {$serialFile}");
 
         $this->info("\nCA certificate generation completed!");
@@ -107,5 +107,52 @@ class Ikev2GenerateCa extends Command
         $this->info("  - The CA will be embedded in generated iOS/macOS profiles");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Grant the panel process read access to the CA cert/key and write access
+     * to the serial file without making the private key world-readable.
+     */
+    private function applyPermissions(string $dir, string $caCertPath, string $caKeyPath, string $serialFile): void
+    {
+        $privateDir = dirname($caKeyPath);
+
+        @chmod($dir, 0755);
+        @chmod($privateDir, 0750);
+        @chmod($caCertPath, 0644);
+        @chmod($caKeyPath, 0640);
+        @chmod($serialFile, 0664);
+
+        $panelGroup = $this->detectPanelGroup();
+
+        if ($panelGroup === null) {
+            return;
+        }
+
+        @chgrp($privateDir, $panelGroup);
+        @chgrp($caKeyPath, $panelGroup);
+        @chgrp($serialFile, $panelGroup);
+    }
+
+    /**
+     * Detect the group of the web process from the storage directory owner.
+     */
+    private function detectPanelGroup(): ?string
+    {
+        $storagePath = storage_path();
+
+        if (!file_exists($storagePath)) {
+            return null;
+        }
+
+        $groupId = filegroup($storagePath);
+
+        if ($groupId === false) {
+            return null;
+        }
+
+        $group = function_exists('posix_getgrgid') ? posix_getgrgid($groupId) : false;
+
+        return $group['name'] ?? null;
     }
 }
