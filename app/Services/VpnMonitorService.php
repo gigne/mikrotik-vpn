@@ -90,27 +90,26 @@ class VpnMonitorService
 
     /**
      * Check single MikroTik connectivity.
+     *
+     * Uses ppp interface detection instead of ping because ICMP doesn't work
+     * through IPsec transport mode (only UDP/1701 is encrypted). When a
+     * MikroTik connects via L2TP/IPsec, a ppp interface is created with its
+     * vpn_ip as the peer address.
      */
     public function checkMikrotik(Mikrotik $mikrotik): array
     {
-        $timeout = config('vpnpanel.monitoring.timeout_seconds', 5);
-        $pingEnabled = config('vpnpanel.monitoring.ping_enabled', true);
-
         $isOnline = false;
         $latency = null;
 
-        if ($pingEnabled) {
-            $result = $this->processRunner->run(
-                ['ping', '-c', '3', '-W', (string) $timeout, $mikrotik->vpn_ip],
-                $timeout + 2
-            );
+        // Check if ppp interface exists with this vpn_ip as peer
+        $result = $this->processRunner->run(
+            ['ip', 'addr', 'show'],
+            5
+        );
 
-            $isOnline = $result->successful();
-
-            // Extract average latency from ping output
-            if ($isOnline && preg_match('/rtt min\/avg\/max.*= ([\d.]+)\/([\d.]+)\/([\d.]+)/', $result->stdout, $matches)) {
-                $latency = (float) $matches[2]; // avg
-            }
+        if ($result->successful()) {
+            // Look for "peer <vpn_ip>" in ppp interface output
+            $isOnline = (bool) preg_match('/peer\s+' . preg_quote($mikrotik->vpn_ip, '/') . '/', $result->stdout);
         }
 
         // Update status in database
