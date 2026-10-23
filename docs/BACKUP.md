@@ -56,7 +56,8 @@ gunzip < /var/backups/vpn-panel/database/vpnpanel-<TS>.sql.gz | mysql -u vpnpane
 ### Nginx
 
 ```bash
-cp /var/backups/vpn-panel/nginx/mikrotik.<TS>.conf /etc/nginx/conf.d/mikrotik.conf
+cp /var/backups/vpn-panel/managed/<TS>/http.mikrotik.conf /etc/nginx/conf.d/mikrotik.conf
+cp /var/backups/vpn-panel/managed/<TS>/stream.mikrotik.conf /etc/nginx/stream.d/mikrotik.conf
 nginx -t && systemctl reload nginx
 ```
 

@@ -73,8 +73,8 @@ echo "=== managed files ==="
 echo "-- /etc/ppp/chap-secrets (passwords redacted) --"
 sed -E 's/("[^"]*") (l2tpd) "[^"]*"/\1 \2 <redacted>/' /etc/ppp/chap-secrets 2>/dev/null | head -20
 
-echo "-- /etc/nginx/stream-proxy.conf --"
-head -20 /etc/nginx/stream-proxy.conf 2>/dev/null
+echo "-- /etc/nginx/stream.d/mikrotik.conf --"
+head -20 /etc/nginx/stream.d/mikrotik.conf 2>/dev/null
 
 echo "-- /etc/nginx/conf.d/mikrotik.conf --"
 head -12 /etc/nginx/conf.d/mikrotik.conf 2>/dev/null

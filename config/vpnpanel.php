@@ -36,7 +36,7 @@ return [
     'paths' => [
         'chap_secrets' => env('VPNPANEL_CHAP_SECRETS', '/etc/ppp/chap-secrets'),
         'nginx_conf' => env('VPNPANEL_NGINX_CONF', '/etc/nginx/conf.d/mikrotik.conf'),
-        'nginx_stream_conf' => env('VPNPANEL_NGINX_STREAM_CONF', '/etc/nginx/stream-proxy.conf'),
+        'nginx_stream_conf' => env('VPNPANEL_NGINX_STREAM_CONF', '/etc/nginx/stream.d/mikrotik.conf'),
         'backups' => env('VPNPANEL_BACKUP_PATH', '/var/backups/vpn-panel'),
     ],
 

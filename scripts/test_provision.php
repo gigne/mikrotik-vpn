@@ -20,8 +20,8 @@ try {
 echo "\n=== chap-secrets ===\n";
 echo file_get_contents('/etc/ppp/chap-secrets');
 
-echo "\n=== stream-proxy.conf (first 10 lines) ===\n";
-echo head(file_get_contents('/etc/nginx/stream-proxy.conf'), 10);
+echo "\n=== stream.d/mikrotik.conf (first 10 lines) ===\n";
+echo head(file_get_contents('/etc/nginx/stream.d/mikrotik.conf'), 10);
 
 echo "\n=== Laravel log (chap/deploy related) ===\n";
 $log = file_get_contents(storage_path('logs/laravel.log'));

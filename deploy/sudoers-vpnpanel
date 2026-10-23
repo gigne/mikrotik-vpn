@@ -14,7 +14,7 @@ Defaults    !use_pty
 # Atomic-write helper: the command path must be unquoted; sudoers matches the
 # full argv exactly (path + all args) so only these three targets are writable.
 vpnpanel ALL=(root) NOPASSWD: /var/www/vpnpanel/deploy/vpnpanel-atomic-write /etc/ppp/chap-secrets vpnpanel 0600
-vpnpanel ALL=(root) NOPASSWD: /var/www/vpnpanel/deploy/vpnpanel-atomic-write /etc/nginx/stream-proxy.conf vpnpanel 0644
+vpnpanel ALL=(root) NOPASSWD: /var/www/vpnpanel/deploy/vpnpanel-atomic-write /etc/nginx/stream.d/mikrotik.conf vpnpanel 0644
 vpnpanel ALL=(root) NOPASSWD: /var/www/vpnpanel/deploy/vpnpanel-atomic-write /etc/nginx/conf.d/mikrotik.conf vpnpanel 0644
 
 # Service management (restart/reload after config changes).

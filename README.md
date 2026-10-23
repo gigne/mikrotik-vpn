@@ -10,7 +10,7 @@ cabang-cabang MikroTik melalui satu domain publik (`vpn.example.com`).
 - **Manajemen MikroTik cabang** — provisioning otomatis (username, password, IP, port), monitoring online/offline, backup konfigurasi, generate script RouterOS + QR.
 - **`/etc/ppp/chap-secrets` otomatis** — panel adalah sumber data utama; setiap perubahan menghasilkan ulang file, mem-backup versi lama, memvalidasi format, lalu me-restart xl2tpd.
 - **IP Pool Management** — subnet `192.168.47.0/24`, alokasi otomatis/manual, cegah duplikasi & IP di luar subnet.
-- **Nginx port forwarding** — Winbox (`:8291+`) dan WebFig (`:8080+`) per cabang, dikelola melalui `/etc/nginx/conf.d/mikrotik.conf` (stream + http), dengan `nginx -t` + reload otomatis.
+- **Nginx port forwarding** — Winbox (`:8291+`) via `/etc/nginx/stream.d/mikrotik.conf` (di-include dari blok `stream {}` top-level) dan WebFig (`:8080+`) via `/etc/nginx/conf.d/mikrotik.conf` (http), dengan `nginx -t` + reload otomatis.
 - **Monitoring** — scheduler setiap menit (status VPN/IPsec/xl2tpd + ping semua MikroTik), backup harian (RouterOS, database, file terkelola) dengan retensi.
 - **Notifikasi Telegram** — VPN server down, MikroTik offline, backup gagal, nginx reload gagal.
 - **Keamanan** — role admin/operator, RBAC policy, 2FA Google Authenticator, audit log, enkripsi password MikroTik, rate limiting login, session timeout, CSRF.

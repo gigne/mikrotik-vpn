@@ -61,8 +61,9 @@ class DeployConfigsCommandTest extends TestCase
         $this->assertStringContainsString('"mt-beta"', $chapSecrets);
 
         $stream = (string) $this->files->get(config('vpnpanel.paths.nginx_stream_conf'));
-        $this->assertStringContainsString('stream {', $stream);
         $this->assertStringContainsString('listen 8295;', $stream);
+        $this->assertStringContainsString('proxy_pass ', $stream);
+        $this->assertStringNotContainsString('stream {', $stream);
 
         $http = (string) $this->files->get(config('vpnpanel.paths.nginx_conf'));
         $this->assertStringContainsString('listen 8085;', $http);

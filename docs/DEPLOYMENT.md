@@ -46,7 +46,7 @@ dipetakan oleh `SshFileStore` (konfigurasi lanjutan).
 
 | Setting | Nilai | Efek |
 |---|---|---|
-| `VPNPANEL_DRIVER` | `local` | Tulis file nyata (`/etc/ppp/chap-secrets`, `/etc/nginx/conf.d/mikrotik.conf`) |
+| `VPNPANEL_DRIVER` | `local` | Tulis file nyata (`/etc/ppp/chap-secrets`, `/etc/nginx/conf.d/mikrotik.conf`, `/etc/nginx/stream.d/mikrotik.conf`) |
 | | `sandbox` | Semua file di-root ulang ke `storage/app/vpn-panel-sandbox` (dev/demo) |
 | `VPNPANEL_PROCESS_RUNNER` | `local` | Jalankan systemctl/nginx langsung |
 | | `ssh` | Jalankan via SSH ke host VPN |
@@ -75,7 +75,8 @@ sudo -u vpnpanel php /var/www/vpnpanel/artisan vpnpanel:monitor
 sudo -u vpnpanel php /var/www/vpnpanel/artisan about
 # dari panel: tambah MikroTik "Kantor" → cek:
 cat /etc/ppp/chap-secrets                        # berisi mt-kantor
-cat /etc/nginx/conf.d/mikrotik.conf              # berisi listen 8291 + 8080
+cat /etc/nginx/stream.d/mikrotik.conf            # berisi listen 8291
+cat /etc/nginx/conf.d/mikrotik.conf              # berisi listen 8080
 sudo nginx -t                                    # OK
 ipsec status                                     # tetap normal
 ```

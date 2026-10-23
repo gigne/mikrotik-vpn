@@ -64,8 +64,8 @@ class ProvisioningFlowTest extends TestCase
 
                 $streamConf = $this->files->get(config('vpnpanel.paths.nginx_stream_conf'));
                 $this->assertNotNull($streamConf);
-                $this->assertStringContainsString('stream {', $streamConf);
                 $this->assertStringContainsString('listen 8291;', $streamConf);
+                $this->assertStringNotContainsString('stream {', $streamConf);
 
         // system commands were executed: nginx test/reload + xl2tpd restart
         $this->assertTrue($this->runner->wasCalled('nginx'));

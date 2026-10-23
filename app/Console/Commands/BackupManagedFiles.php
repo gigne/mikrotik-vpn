@@ -16,7 +16,7 @@ class BackupManagedFiles extends Command
     protected $signature = 'vpnpanel:backup-files
                             {--retention-days=30 : delete backups older than N days}';
 
-    protected $description = 'Backup chap-secrets and nginx config with retention cleanup';
+    protected $description = 'Backup chap-secrets and both nginx configs with retention cleanup';
 
     public function handle(FileStore $files): int
     {
@@ -26,7 +26,8 @@ class BackupManagedFiles extends Command
 
         $paths = [
             config('vpnpanel.paths.chap_secrets') => 'chap-secrets',
-            config('vpnpanel.paths.nginx_conf') => 'nginx',
+            config('vpnpanel.paths.nginx_conf') => 'http',
+            config('vpnpanel.paths.nginx_stream_conf') => 'stream',
         ];
 
         foreach ($paths as $src => $label) {

@@ -124,7 +124,7 @@ VPNPANEL_PROCESS_RUNNER=local
 VPNPANEL_PROCESS_SUDO=true
 VPNPANEL_CHAP_SECRETS=/etc/ppp/chap-secrets
 VPNPANEL_NGINX_CONF=/etc/nginx/conf.d/mikrotik.conf
-VPNPANEL_NGINX_STREAM_CONF=/etc/nginx/stream-proxy.conf
+VPNPANEL_NGINX_STREAM_CONF=/etc/nginx/stream.d/mikrotik.conf
 VPNPANEL_BACKUP_PATH=/var/backups/vpn-panel
 
 # --- VPN pool ---
@@ -194,14 +194,17 @@ ln -sf /etc/nginx/sites-available/vpnpanel /etc/nginx/sites-enabled/vpnpanel
 # http-context directives (limit_req_zone cannot live inside server{})
 cp "$APP_DIR/deploy/nginx-vpnpanel-http.conf" /etc/nginx/conf.d/vpnpanel-http.conf
 
-# The panel manages these two files. stream-proxy.conf is included from the
-# top level of nginx.conf because `stream {}` is invalid inside `http {}`.
-mkdir -p /etc/nginx/conf.d
-touch /etc/nginx/conf.d/mikrotik.conf /etc/nginx/stream-proxy.conf
-chown "$APP_USER:$APP_USER" /etc/nginx/conf.d/mikrotik.conf /etc/nginx/stream-proxy.conf
+# The panel manages two files:
+#   /etc/nginx/conf.d/mikrotik.conf    WebFig http servers   (http {} context)
+#   /etc/nginx/stream.d/mikrotik.conf  Winbox stream proxies (stream {} context)
+# stream.d is included from the top level of nginx.conf because `stream {}` is
+# invalid inside the http {} context that owns conf.d.
+mkdir -p /etc/nginx/conf.d /etc/nginx/stream.d
+touch /etc/nginx/conf.d/mikrotik.conf /etc/nginx/stream.d/mikrotik.conf
+chown "$APP_USER:$APP_USER" /etc/nginx/conf.d/mikrotik.conf /etc/nginx/stream.d/mikrotik.conf
 # Parent dirs must be group-writable so atomic temp files can be created
-chown root:"$APP_USER" /etc/nginx /etc/nginx/conf.d
-chmod 0775 /etc/nginx /etc/nginx/conf.d
+chown root:"$APP_USER" /etc/nginx /etc/nginx/conf.d /etc/nginx/stream.d
+chmod 0775 /etc/nginx /etc/nginx/conf.d /etc/nginx/stream.d
 
 # Override PHP-FPM systemd sandbox (ProtectSystem=full blocks writes to /etc)
 FPM_OVERRIDE_DIR="/etc/systemd/system/php${PHP_FPM_VERSION}-fpm.service.d"
@@ -213,13 +216,18 @@ EOF
 systemctl daemon-reload
 systemctl restart "php${PHP_FPM_VERSION}-fpm"
 
-# Idempotently add the top-level include for the panel's stream proxies.
+# Idempotently add the top-level stream include for the panel's Winbox proxies.
+# `stream {}` is invalid inside the http {} context that owns conf.d, so
+# /etc/nginx/stream.d/ gets its own top-level block. The marker comment makes
+# this re-runnable without leaving duplicate stream {} blocks behind.
 # NOTE: ngx_stream_module is already loaded by nginx-extras (50-mod-stream.conf);
 # loading it again makes `nginx -t` fail with "module is already loaded".
 rm -f /etc/nginx/modules-enabled/zz-stream-vpnpanel.conf
-sed -i '\|include /etc/nginx/stream\.d/\*\.conf;|d' /etc/nginx/nginx.conf
-grep -q 'include /etc/nginx/stream-proxy.conf;' /etc/nginx/nginx.conf \
-    || sed -i '/^http {/i include /etc/nginx/stream-proxy.conf;\n' /etc/nginx/nginx.conf
+sed -i '/# vpnpanel-stream-include/,+3d' /etc/nginx/nginx.conf
+sed -i '\|include /etc/nginx/stream-proxy\.conf;|d' /etc/nginx/nginx.conf
+sed -i '/^http {/i # vpnpanel-stream-include\nstream {\n    include /etc/nginx/stream.d/*.conf;\n}\n' /etc/nginx/nginx.conf
+# Drop the pre-stream.d layout from older installs.
+rm -f /etc/nginx/stream-proxy.conf
 
 # Remove the stock default site so the panel vhost answers on this host.
 rm -f /etc/nginx/sites-enabled/default
@@ -259,6 +267,6 @@ echo " IMPORTANT: change the admin password immediately."
 echo " Managed files:"
 echo "   /etc/ppp/chap-secrets            (panel-owned)"
 echo "   /etc/nginx/conf.d/mikrotik.conf  (panel-owned, http)"
-echo "   /etc/nginx/stream-proxy.conf      (panel-owned, stream)"
+echo "   /etc/nginx/stream.d/mikrotik.conf (panel-owned, stream)"
 echo " Backups: /var/backups/vpn-panel"
 echo "==============================================================="

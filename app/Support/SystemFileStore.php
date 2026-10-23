@@ -8,7 +8,7 @@ use App\Contracts\FileStore;
 
 /**
  * File store that writes the three panel-managed system files
- * (/etc/ppp/chap-secrets, /etc/nginx/stream-proxy.conf,
+ * (/etc/ppp/chap-secrets, /etc/nginx/stream.d/mikrotik.conf,
  * /etc/nginx/conf.d/mikrotik.conf) via a root-privileged atomic-write helper,
  * while delegating everything else (backups, reads, listings) to LocalFileStore.
  *
@@ -21,7 +21,7 @@ final class SystemFileStore implements FileStore
     /** Logical paths the panel owns and must write through sudo. */
     private const MANAGED_PATHS = [
         '/etc/ppp/chap-secrets',
-        '/etc/nginx/stream-proxy.conf',
+        '/etc/nginx/stream.d/mikrotik.conf',
         '/etc/nginx/conf.d/mikrotik.conf',
     ];
 
