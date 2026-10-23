@@ -87,8 +87,8 @@ class ProvisioningFlowTest extends TestCase
 
         $service->decommission($mikrotik);
 
-            $this->assertSoftDeleted('mikrotiks', ['id' => $mikrotik->id]);
-            $this->assertSoftDeleted('vpn_users', ['username' => 'mt-to-be-removed']);
+            $this->assertDatabaseMissing('mikrotiks', ['id' => $mikrotik->id]);
+            $this->assertDatabaseMissing('vpn_users', ['username' => 'mt-to-be-removed']);
         $this->assertDatabaseMissing('nginx_mappings', ['mikrotik_id' => $mikrotik->id]);
 
         // chap-secrets no longer contains the entry

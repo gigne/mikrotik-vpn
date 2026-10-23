@@ -20,10 +20,12 @@ class VpnUserController extends Controller
     public function __construct(
             private readonly VpnProvisionService $provisionService,
         ) {
-            $this->authorizeResource(VpnUser::class, 'vpn_user');}
+            // Authorization is handled per-action via $this->authorize() calls
+            // and form request policies.}
 
     public function index(Request $request): View
     {
+        $this->authorize('viewAny', VpnUser::class);
         $vpnUsers = VpnUser::query()
             ->when($request->query('search'), function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -42,11 +44,14 @@ class VpnUserController extends Controller
 
     public function create(): View
     {
+        $this->authorize('create', VpnUser::class);
+
         return view('vpn-users.create');
     }
 
     public function store(StoreVpnUserRequest $request): RedirectResponse
     {
+        $this->authorize('create', VpnUser::class);
         $data = $request->validated();
         if (empty($data['password'])) {
             $data['password'] = \Illuminate\Support\Str::password(16, symbols: false);
@@ -61,11 +66,15 @@ class VpnUserController extends Controller
 
     public function edit(VpnUser $vpnUser): View
     {
+        $this->authorize('update', $vpnUser);
+
         return view('vpn-users.edit', compact('vpnUser'));
     }
 
     public function update(UpdateVpnUserRequest $request, VpnUser $vpnUser): RedirectResponse
     {
+        $this->authorize('update', $vpnUser);
+
         $data = $request->validated();
         if (empty($data['password'])) {
             unset($data['password']);
@@ -82,6 +91,8 @@ class VpnUserController extends Controller
 
     public function destroy(VpnUser $vpnUser): RedirectResponse
     {
+        $this->authorize('delete', $vpnUser);
+
         $username = $vpnUser->username;
         $this->provisionService->delete($vpnUser);
 

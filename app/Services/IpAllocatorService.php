@@ -63,24 +63,27 @@ class IpAllocatorService
 
     /**
      * Check if an IP is already allocated.
+     *
+     * Includes soft-deleted records so an IP from a recently deleted site is
+     * not handed back out before the DB transaction commits the cleanup.
      */
     public function isIpInUse(string $ip): bool
     {
-        $vpnUserInUse = VpnUser::where('assigned_ip', $ip)->exists();
-        $mikrotikInUse = Mikrotik::where('vpn_ip', $ip)->exists();
+        $vpnUserInUse = VpnUser::withTrashed()->where('assigned_ip', $ip)->exists();
+        $mikrotikInUse = Mikrotik::withTrashed()->where('vpn_ip', $ip)->exists();
 
         return $vpnUserInUse || $mikrotikInUse;
     }
 
     /**
-     * Get all currently used IPs.
+     * Get all currently used IPs (including soft-deleted records).
      *
      * @return array<string>
      */
     public function getUsedIps(): array
     {
-        $vpnIps = VpnUser::pluck('assigned_ip')->filter()->toArray();
-        $mikrotikIps = Mikrotik::pluck('vpn_ip')->filter()->toArray();
+        $vpnIps = VpnUser::withTrashed()->pluck('assigned_ip')->filter()->toArray();
+        $mikrotikIps = Mikrotik::withTrashed()->pluck('vpn_ip')->filter()->toArray();
 
         return array_unique(array_merge($vpnIps, $mikrotikIps));
     }

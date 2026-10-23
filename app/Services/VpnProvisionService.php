@@ -104,7 +104,10 @@ class VpnProvisionService
     }
 
     /**
-     * Delete a VPN user and redeploy.
+     * Delete a VPN user and redeploy chap-secrets.
+     *
+     * Uses forceDelete so the assigned IP's unique index is immediately
+     * freed for reuse.
      */
     public function delete(VpnUser $vpnUser): void
     {
@@ -112,7 +115,7 @@ class VpnProvisionService
             $username = $vpnUser->username;
             $ip = $vpnUser->assigned_ip;
 
-            $vpnUser->delete();
+            $vpnUser->forceDelete();
 
             $this->deployChapSecrets();
 
@@ -121,7 +124,7 @@ class VpnProvisionService
                 'assigned_ip' => $ip,
             ]);
 
-            Log::info("VPN user deleted: {$username}");
+            Log::info("VPN user deleted: {$username} ({$ip})");
         });
     }
 

@@ -23,7 +23,10 @@ class DashboardController extends Controller
     public function __invoke(): View
     {
         $stats = $this->monitor->getStats();
-        $serverStatus = $this->monitor->checkVpnServerStatus();
+        // Read cached service status instead of running systemctl on every
+        // page load — the scheduler refreshes it every minute via
+        // vpnpanel:monitor. Falls back gracefully if the cache is cold.
+        $serverStatus = $this->getCachedServerStatus();
 
         return view('dashboard', [
             'stats' => $stats,
@@ -33,5 +36,32 @@ class DashboardController extends Controller
             'recentActivity' => AuditLog::with('user')->latest('created_at')->limit(10)->get(),
             'sites' => Mikrotik::orderBy('site_name')->get(['site_name', 'vpn_ip', 'is_online', 'last_seen_at', 'winbox_public_port', 'webfig_public_port']),
         ]);
+    }
+
+    /**
+     * Return server status from cache (set by vpnpanel:monitor every minute).
+     * Never blocks the dashboard on a live systemctl call.
+     *
+     * @return array{overall: string, services: array<string, array{service: string, status: string, exit_code: int}>, checked_at: \Illuminate\Support\Carbon|string}
+     */
+    private function getCachedServerStatus(): array
+    {
+        $cached = \Illuminate\Support\Facades\Cache::get('vpnpanel.server_status');
+
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        // Cold cache: report unknown rather than blocking on systemctl.
+        $services = config('vpnpanel.services');
+
+        return [
+            'overall' => 'unknown',
+            'services' => [
+                'xl2tpd' => ['service' => $services['xl2tpd'], 'status' => 'unknown', 'exit_code' => -1],
+                'ipsec' => ['service' => $services['ipsec'], 'status' => 'unknown', 'exit_code' => -1],
+            ],
+            'checked_at' => 'never',
+        ];
     }
 }

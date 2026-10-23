@@ -162,6 +162,10 @@ class MikrotikProvisionService
 
     /**
      * Decommission MikroTik and release all resources.
+     *
+     * Uses forceDelete so the IP and port are immediately free for reuse —
+     * soft-deleting would leave the unique index occupied and the next
+     * provisioning could grab a colliding IP.
      */
     public function decommission(Mikrotik $mikrotik): void
     {
@@ -169,16 +173,16 @@ class MikrotikProvisionService
             $vpnUsername = $mikrotik->vpn_username;
             $vpnIp = $mikrotik->vpn_ip;
 
-            // Delete nginx mappings (cascades)
+            // Delete nginx mappings (hard delete — no soft deletes on this model)
             $mikrotik->nginxMappings()->delete();
 
-            // Delete VPN user
-            VpnUser::where('username', $vpnUsername)->delete();
+            // Hard-delete the VPN user so the IP unique index is freed
+            VpnUser::where('username', $vpnUsername)->forceDelete();
 
-            // Soft delete MikroTik
-            $mikrotik->delete();
+            // Hard-delete the MikroTik so its vpn_ip unique index is freed
+            $mikrotik->forceDelete();
 
-            // Deploy cleaned config
+            // Deploy cleaned config (best-effort)
             try {
                 $this->chapSecretsDeploy->deploy();
                 $this->nginxDeploy->deploy();
@@ -186,12 +190,12 @@ class MikrotikProvisionService
                 Log::warning('Deployment failed during decommission: ' . $e->getMessage());
             }
 
-            $this->auditLog->log('mikrotik_decommissioned', $mikrotik, [
+            $this->auditLog->log('mikrotik_decommissioned', null, [
                 'vpn_username' => $vpnUsername,
                 'vpn_ip' => $vpnIp,
             ]);
 
-            Log::info("MikroTik decommissioned: {$mikrotik->site_name}");
+            Log::info("MikroTik decommissioned: {$mikrotik->site_name} ({$vpnIp})");
         });
     }
 

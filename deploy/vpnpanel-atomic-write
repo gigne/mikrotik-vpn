@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Atomically write stdin to a root-owned path on behalf of the VPN panel.
+
+The panel runs as the unprivileged `vpnpanel` user but must manage files that
+live in root-owned directories (/etc/ppp, /etc/nginx). Rather than making those
+system directories group-writable — which would let any member inject VPN
+credentials or nginx config — sudoers grants this helper for *exact* target
+paths only (see deploy/sudoers-vpnpanel).
+
+Secrets travel on stdin, never in argv, so they cannot leak via /proc/<pid>/cmdline
+or shell history.
+
+Usage: vpnpanel-atomic-write <target-path> <owner> <mode>
+"""
+import os
+import sys
+import tempfile
+
+
+def main() -> int:
+    if len(sys.argv) != 4:
+        sys.stderr.write("usage: vpnpanel-atomic-write <path> <owner> <mode>\n")
+        return 2
+
+    target, owner, mode = sys.argv[1], sys.argv[2], sys.argv[3]
+
+    # Never follow a symlinked target: that would let a swapped symlink
+    # redirect a root-privileged write to an arbitrary file.
+    if os.path.islink(target):
+        sys.stderr.write("refusing to write through symlink: %s\n" % target)
+        return 1
+
+    data = sys.stdin.buffer.read()
+
+    target_dir = os.path.dirname(os.path.abspath(target))
+    if not os.path.isdir(target_dir):
+        sys.stderr.write("no such directory: %s\n" % target_dir)
+        return 1
+
+    # Write beside the target so os.replace() is an atomic same-filesystem rename.
+    fd, tmp = tempfile.mkstemp(prefix=".vpnpanel-", dir=target_dir)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+
+        try:
+            os.chown(tmp, owner_to_uid(owner), owner_to_gid(owner))
+        except (KeyError, ValueError):
+            sys.stderr.write("unknown owner: %s\n" % owner)
+            raise
+        os.chmod(tmp, int(mode, 8))
+        os.replace(tmp, target)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+    return 0
+
+
+def owner_to_uid(owner: str) -> int:
+    import pwd
+    return pwd.getpwnam(owner).pw_uid
+
+
+def owner_to_gid(owner: str) -> int:
+    import grp
+    return grp.getgrnam(owner).gr_gid
+
+
+if __name__ == "__main__":
+    sys.exit(main())

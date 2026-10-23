@@ -91,9 +91,9 @@ class ApiTest extends TestCase
 
         $this->assertDatabaseHas('vpn_users', ['notes' => 'updated via API']);
 
-        // destroy (soft delete)
+        // destroy (hard delete — IP unique index freed)
         $this->deleteJson("/api/vpn-users/{$id}")->assertOk();
-                $this->assertSoftDeleted('vpn_users', ['id' => $id]);
+                $this->assertDatabaseMissing('vpn_users', ['id' => $id]);
     }
 
     public function test_vpn_user_duplicate_ip_rejected(): void

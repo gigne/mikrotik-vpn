@@ -1,0 +1,31 @@
+# Sudoers fragment for the VPN Panel.
+#
+# The panel runs as the unprivileged `vpnpanel` user but must manage a small
+# set of system files (chap-secrets, nginx configs). This rule allows the
+# panel to invoke a dedicated atomic-write helper for exactly those targets,
+# and nothing else.
+#
+# Install with: cp deploy/sudoers-vpnpanel /etc/sudoers.d/vpnpanel && visudo -cf /etc/sudoers.d/vpnpanel
+# IMPORTANT: strip CR (sed -i 's/\r$//') if uploading from Windows.
+
+Defaults    secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Defaults    !use_pty
+
+# Atomic-write helper: the command path must be unquoted; sudoers matches the
+# full argv exactly (path + all args) so only these three targets are writable.
+vpnpanel ALL=(root) NOPASSWD: /var/www/vpnpanel/deploy/vpnpanel-atomic-write /etc/ppp/chap-secrets vpnpanel 0600
+vpnpanel ALL=(root) NOPASSWD: /var/www/vpnpanel/deploy/vpnpanel-atomic-write /etc/nginx/stream-proxy.conf vpnpanel 0644
+vpnpanel ALL=(root) NOPASSWD: /var/www/vpnpanel/deploy/vpnpanel-atomic-write /etc/nginx/conf.d/mikrotik.conf vpnpanel 0644
+
+# Service management (restart/reload after config changes).
+vpnpanel ALL=(root) NOPASSWD: /usr/bin/systemctl restart xl2tpd
+vpnpanel ALL=(root) NOPASSWD: /usr/bin/systemctl restart ipsec
+vpnpanel ALL=(root) NOPASSWD: /usr/bin/systemctl restart strongswan
+vpnpanel ALL=(root) NOPASSWD: /usr/bin/systemctl reload nginx
+vpnpanel ALL=(root) NOPASSWD: /usr/sbin/nginx -t
+
+# Status checks (monitoring command and dashboard).
+vpnpanel ALL=(root) NOPASSWD: /usr/bin/systemctl is-active xl2tpd
+vpnpanel ALL=(root) NOPASSWD: /usr/bin/systemctl is-active ipsec
+vpnpanel ALL=(root) NOPASSWD: /usr/bin/systemctl is-active strongswan
+vpnpanel ALL=(root) NOPASSWD: /usr/bin/systemctl is-active nginx

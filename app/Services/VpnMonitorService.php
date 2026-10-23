@@ -25,8 +25,18 @@ class VpnMonitorService
 
         /**
          * Check VPN server status (xl2tpd, ipsec services).
+         *
+         * Result is cached for 60 seconds so the dashboard never blocks on
+         * systemctl. The scheduler (vpnpanel:monitor) refreshes it every minute.
          */
         public function checkVpnServerStatus(): array
+        {
+            return \Illuminate\Support\Facades\Cache::remember('vpnpanel.server_status', 60, function (): array {
+                return $this->runServerStatusCheck();
+            });
+        }
+
+        private function runServerStatusCheck(): array
         {
             $services = config('vpnpanel.services');
             $status = [];

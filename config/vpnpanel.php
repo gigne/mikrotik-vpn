@@ -36,7 +36,7 @@ return [
     'paths' => [
         'chap_secrets' => env('VPNPANEL_CHAP_SECRETS', '/etc/ppp/chap-secrets'),
         'nginx_conf' => env('VPNPANEL_NGINX_CONF', '/etc/nginx/conf.d/mikrotik.conf'),
-        'nginx_stream_conf' => env('VPNPANEL_NGINX_STREAM_CONF', '/etc/nginx/stream.d/mikrotik.conf'),
+        'nginx_stream_conf' => env('VPNPANEL_NGINX_STREAM_CONF', '/etc/nginx/stream-proxy.conf'),
         'backups' => env('VPNPANEL_BACKUP_PATH', '/var/backups/vpn-panel'),
     ],
 
@@ -96,7 +96,7 @@ return [
         'subnet' => env('VPNPANEL_VPN_SUBNET', '192.168.47.0/24'),
         'server_ip' => env('VPNPANEL_VPN_SERVER_IP', '192.168.47.1'),
         'range_start' => env('VPNPANEL_VPN_RANGE_START', '192.168.47.2'),
-        'range_end' => env('VPNPANEL_VPN_RANGE_END', '192.168.47.254'),
+        'range_end' => env('VPNPANEL_VPN_RANGE_END', '192.168.47.199'),
     ],
 
     /*

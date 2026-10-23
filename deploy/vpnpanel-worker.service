@@ -10,7 +10,7 @@ After=network.target mariadb.service postgresql.service redis-server.service
 User=vpnpanel
 Group=vpnpanel
 Restart=always
-ExecStart=/usr/bin/php /var/www/vpnpanel/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+ExecStart=/usr/local/bin/php /var/www/vpnpanel/artisan queue:work --sleep=3 --tries=3 --max-time=3600
 RestartSec=5
 StandardOutput=append:/var/log/vpnpanel/worker.log
 StandardError=append:/var/log/vpnpanel/worker-error.log

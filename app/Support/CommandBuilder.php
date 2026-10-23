@@ -19,7 +19,9 @@ final class CommandBuilder
     public function build(array $command): array
     {
         if (config('vpnpanel.process_sudo', true)) {
-            return ['sudo', ...$command];
+            // -n = non-interactive: never prompt for a password. If a sudoers
+            // rule is missing, the command fails fast instead of hanging.
+            return ['sudo', '-n', ...$command];
         }
 
         return $command;

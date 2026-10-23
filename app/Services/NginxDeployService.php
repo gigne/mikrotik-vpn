@@ -117,7 +117,7 @@ class NginxDeployService
     public function testNginx()
     {
         return $this->processRunner->run(
-            $this->commandBuilder->build(['nginx', '-t'])
+            $this->commandBuilder->build(['/usr/sbin/nginx', '-t'])
         );
     }
 

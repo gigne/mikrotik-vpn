@@ -18,6 +18,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(FileStore::class, function ($app) {
             $driver = config('vpnpanel.driver', 'sandbox');
             if ($driver === 'local') {
+                // The installer makes /etc/ppp, /etc/nginx/conf.d, and
+                // /etc/nginx group-writable by vpnpanel, so the app writes
+                // managed files directly — no sudo helper needed.
                 return new \App\Support\LocalFileStore(basePath: base_path());
             }
             return new SandboxFileStore(basePath: storage_path('app'));

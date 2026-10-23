@@ -21,7 +21,7 @@ class IpAllocatorServiceTest extends TestCase
         config()->set('vpnpanel.ip_pool.subnet', '192.168.47.0/24');
         config()->set('vpnpanel.ip_pool.server_ip', '192.168.47.1');
         config()->set('vpnpanel.ip_pool.range_start', '192.168.47.2');
-        config()->set('vpnpanel.ip_pool.range_end', '192.168.47.254');
+        config()->set('vpnpanel.ip_pool.range_end', '192.168.47.199');
         $this->service = app(\App\Services\IpAllocatorService::class);
     }
 

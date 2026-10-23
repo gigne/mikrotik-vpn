@@ -27,10 +27,14 @@ class MikrotikController extends Controller
             private readonly MikrotikBackupService $backupService,
             private readonly VpnMonitorService $monitor,
         ) {
-            $this->authorizeResource(Mikrotik::class, 'mikrotik');}
+            // Authorization is handled per-action via $this->authorize() calls
+            // and form request policies, not authorizeResource() — the latter
+            // depends on the controller middleware() method removed in Laravel 12.}
 
     public function index(Request $request): View
     {
+        $this->authorize('viewAny', Mikrotik::class);
+
         $mikrotiks = Mikrotik::query()
             ->when($request->query('search'), function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -47,11 +51,15 @@ class MikrotikController extends Controller
 
     public function create(): View
     {
+        $this->authorize('create', Mikrotik::class);
+
         return view('mikrotiks.create');
     }
 
     public function store(StoreMikrotikRequest $request): RedirectResponse
     {
+        $this->authorize('create', Mikrotik::class);
+
         $mikrotik = $this->provisionService->provision(
             MikrotikData::fromArray($request->validated())
         );
@@ -63,6 +71,8 @@ class MikrotikController extends Controller
 
     public function show(Mikrotik $mikrotik, Request $request): View
     {
+        $this->authorize('view', $mikrotik);
+
         $script = $this->routerOSGenerator->generate($mikrotik);
         $summary = $this->routerOSGenerator->generateSummary($mikrotik);
         $backups = $this->backupService->listBackups($mikrotik);
@@ -72,11 +82,15 @@ class MikrotikController extends Controller
 
     public function edit(Mikrotik $mikrotik): View
     {
+        $this->authorize('update', $mikrotik);
+
         return view('mikrotiks.edit', compact('mikrotik'));
     }
 
     public function update(UpdateMikrotikRequest $request, Mikrotik $mikrotik): RedirectResponse
     {
+        $this->authorize('update', $mikrotik);
+
         $this->provisionService->update($mikrotik, $request->validated());
 
         return redirect()
@@ -86,6 +100,8 @@ class MikrotikController extends Controller
 
     public function destroy(Mikrotik $mikrotik): RedirectResponse
     {
+        $this->authorize('delete', $mikrotik);
+
         $siteName = $mikrotik->site_name;
         $this->provisionService->decommission($mikrotik);
 
