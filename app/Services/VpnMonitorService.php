@@ -17,11 +17,10 @@ class VpnMonitorService
 {
     public function __construct(
         private readonly ProcessRunner $processRunner,
-            private readonly CommandBuilder $commandBuilder,
-            private readonly NotificationService $notifications,
-            private readonly AuditLogService $auditLog
-        ) {
-        }
+        private readonly CommandBuilder $commandBuilder,
+        private readonly NotificationService $notifications
+    ) {
+    }
 
         /**
          * Check VPN server status (xl2tpd, ipsec services).
@@ -125,11 +124,6 @@ class VpnMonitorService
         if ($wasOnline && ! $isOnline) {
             $this->notifications->mikrotikOffline($mikrotik->site_name, $mikrotik->vpn_ip);
         }
-
-        $this->auditLog->log('mikrotik_checked', $mikrotik, [
-            'status' => $isOnline ? 'online' : 'offline',
-            'latency' => $latency,
-        ]);
 
         return [
             'mikrotik_id' => $mikrotik->id,

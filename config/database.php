@@ -38,10 +38,23 @@ return [
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
-            'busy_timeout' => null,
-            'journal_mode' => null,
-            'synchronous' => null,
-            'transaction_mode' => 'DEFERRED',
+
+            /*
+            | The panel writes from several processes at once (php-fpm, the queue
+            | workers, the scheduler and the per-minute vpnpanel:monitor job), and
+            | session/cache/queue all live in the database too. Without these the
+            | SQLite defaults apply: rollback journal plus busy_timeout 0, so a
+            | contended write fails instantly with "database is locked".
+            |
+            | WAL lets readers and a writer run concurrently, busy_timeout makes a
+            | blocked writer wait instead of erroring, and IMMEDIATE transactions
+            | take the write lock up front rather than upgrading mid-transaction
+            | (which is how two workers deadlock into SQLITE_BUSY).
+            */
+            'busy_timeout' => (int) env('DB_BUSY_TIMEOUT', 5000),
+            'journal_mode' => env('DB_JOURNAL_MODE', 'wal'),
+            'synchronous' => env('DB_SYNCHRONOUS', 'normal'),
+            'transaction_mode' => env('DB_TRANSACTION_MODE', 'IMMEDIATE'),
         ],
 
         'mysql' => [
