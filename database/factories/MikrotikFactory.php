@@ -17,7 +17,7 @@ class MikrotikFactory extends Factory
     /** @return array<string, mixed> */
     public function definition(): array
     {
-        $ip = '192.168.43.' . fake()->unique()->numberBetween(2, 99);
+        $ip = '192.168.42.' . fake()->unique()->numberBetween(2, 99);
 
         return [
             'site_name' => fake()->unique()->company() . ' ' . fake()->randomElement(['Kantor', 'Gudang', 'Cabang']),

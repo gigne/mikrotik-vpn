@@ -75,7 +75,7 @@ class ApiTest extends TestCase
         $response = $this->postJson('/api/vpn-users', [
             'username' => 'api-user',
             'password' => 'password123',
-            'assigned_ip' => '192.168.43.60',
+            'assigned_ip' => '192.168.42.60',
         ])->assertStatus(201);
 
         $id = $response->json('data.id');
@@ -85,7 +85,7 @@ class ApiTest extends TestCase
         $this->putJson("/api/vpn-users/{$id}", [
             'username' => 'api-user',
             'password' => '',
-            'assigned_ip' => '192.168.43.60',
+            'assigned_ip' => '192.168.42.60',
             'notes' => 'updated via API',
         ])->assertOk();
 
@@ -100,14 +100,14 @@ class ApiTest extends TestCase
     {
         \App\Models\VpnUser::factory()->create([
             'username' => 'taken',
-            'assigned_ip' => '192.168.43.77',
+            'assigned_ip' => '192.168.42.77',
         ]);
 
         $this->actingAs($this->admin(), 'sanctum')
             ->postJson('/api/vpn-users', [
                 'username' => 'new-user',
                 'password' => 'password123',
-                'assigned_ip' => '192.168.43.77',
+                'assigned_ip' => '192.168.42.77',
             ])
             ->assertStatus(422);
     }

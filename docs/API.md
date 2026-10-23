@@ -29,7 +29,7 @@ Query params: `search` (teks), `online` (boolean), `per_page` (default 25).
     {
       "id": 1,
       "site_name": "Kantor",
-      "vpn_ip": "192.168.43.2",
+      "vpn_ip": "192.168.42.2",
       "vpn_username": "mt-kantor",
       "winbox_internal_port": 8291,
       "webfig_internal_port": 80,
@@ -53,7 +53,7 @@ nginx, script RouterOS).
 {
   "site_name": "Cabang A",
   "description": "Opsional",
-  "vpn_ip": "192.168.43.4",          // opsional → auto-alokasi
+  "vpn_ip": "192.168.42.4",          // opsional → auto-alokasi
   "vpn_password": "optional-pass",   // opsional → auto-generate
   "winbox_internal_port": 8291,
   "webfig_internal_port": 80,
@@ -77,7 +77,7 @@ Lihat detail. `GET /api/mikrotik/{mikrotik}/script` mengembalikan:
       "vpn_server": "vpn.example.com",
       "username": "mt-cabang-a",
       "password": "...",
-      "vpn_ip": "192.168.43.4",
+      "vpn_ip": "192.168.42.4",
       "psk": "...",
       "winbox_url": "vpn.example.com:8293",
       "webfig_url": "vpn.example.com:8082"
@@ -108,7 +108,7 @@ Query params: `search`, `status` (`all|active|expired|disabled`), `per_page`.
 {
   "username": "maria",
   "password": "secret123",
-  "assigned_ip": "192.168.43.50",   // opsional
+  "assigned_ip": "192.168.42.50",   // opsional
   "notes": "Karyawan cabang",
   "expired_at": "2027-01-01 00:00:00",
   "is_enabled": true
@@ -142,8 +142,8 @@ Flip `is_enabled`.
   "data": {
     "stats": { "total": 253, "used": 5, "free": 248, "usage_percent": 1.98 },
     "entries": [
-      { "ip": "192.168.43.2", "status": "used" },
-      { "ip": "192.168.43.6", "status": "free" }
+      { "ip": "192.168.42.2", "status": "used" },
+      { "ip": "192.168.42.6", "status": "free" }
     ]
   }
 }
@@ -173,5 +173,5 @@ Flip `is_enabled`.
 Error body:
 
 ```json
-{ "message": "IP 192.168.43.4 is already in use", "errors": { "field": ["..."] } }
+{ "message": "IP 192.168.42.4 is already in use", "errors": { "field": ["..."] } }
 ```

@@ -20,7 +20,7 @@ class VpnUserFactory extends Factory
         return [
             'username' => 'user-' . fake()->unique()->lexify('??????'),
             'password' => fake()->password(12, 20),
-            'assigned_ip' => '192.168.43.' . fake()->numberBetween(100, 200),
+            'assigned_ip' => '192.168.42.' . fake()->numberBetween(100, 200),
             'notes' => fake()->optional()->sentence(),
             'is_enabled' => true,
         ];

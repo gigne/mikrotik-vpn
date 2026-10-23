@@ -71,8 +71,8 @@ class ProvisioningFlowTest extends TestCase
         $this->assertTrue($this->runner->wasCalled('nginx'));
         $this->assertTrue($this->runner->wasCalled('systemctl'));
 
-        // IP allocation continued from 192.168.43.2
-        $this->assertSame('192.168.43.2', $mikrotik->vpn_ip);
+        // IP allocation continued from 192.168.42.2
+        $this->assertSame('192.168.42.2', $mikrotik->vpn_ip);
     }
 
     public function test_decommission_releases_resources(): void
@@ -107,10 +107,10 @@ class ProvisioningFlowTest extends TestCase
             'password' => 'secret123',
         ]));
 
-        $this->assertSame('192.168.43.2', $vpnUser->assigned_ip);
+        $this->assertSame('192.168.42.2', $vpnUser->assigned_ip);
 
         $this->assertStringContainsString(
-            '"branch-01" l2tpd "secret123" 192.168.43.2',
+            '"branch-01" l2tpd "secret123" 192.168.42.2',
             (string) $this->files->get(config('vpnpanel.paths.chap_secrets')),
         );
     }
@@ -118,12 +118,12 @@ class ProvisioningFlowTest extends TestCase
     public function test_database_transaction_rolls_back_on_failure(): void
     {
         // Occupy every IP in a tiny range so allocation fails inside provision()
-        $this->app['config']->set('vpnpanel.ip_pool.range_start', '192.168.43.200');
-        $this->app['config']->set('vpnpanel.ip_pool.range_end', '192.168.43.200');
+        $this->app['config']->set('vpnpanel.ip_pool.range_start', '192.168.42.200');
+        $this->app['config']->set('vpnpanel.ip_pool.range_end', '192.168.42.200');
 
         \App\Models\VpnUser::factory()->create([
             'username' => 'blocker',
-            'assigned_ip' => '192.168.43.200',
+            'assigned_ip' => '192.168.42.200',
         ]);
 
         $service = app(\App\Services\MikrotikProvisionService::class);

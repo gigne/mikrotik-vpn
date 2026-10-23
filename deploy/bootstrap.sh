@@ -6,7 +6,7 @@
 #   1. Swap (for low-memory droplets)
 #   2. System packages (nginx-extras, MariaDB, supervisor, PHP 8.5)
 #   3. hwdsl2/setup-ipsec-vpn (L2TP/IPsec server)
-#   4. VPN subnet rewrite (default 192.168.43.0/24)
+#   4. VPN subnet rewrite (default 192.168.42.0/24)
 #   5. The panel itself (deploy/ubuntu-24.04-install.sh)
 #
 # Idempotent: safe to re-run; completed steps are skipped.
@@ -23,7 +23,7 @@
 #   VPN_IPSEC_PSK=...                 IPsec pre-shared key
 #   VPN_USER=vpnadmin                 built-in L2TP/IPsec account
 #   VPN_PASSWORD=...
-#   VPN_SUBNET=192.168.43             /24 subnet used by the panel + xl2tpd
+#   VPN_SUBNET=192.168.42             /24 subnet used by the panel + xl2tpd
 #   SWAP_SIZE=2G                      swap file size
 #   PANEL_SRC=/opt/vpnpanel-src       where the panel source was uploaded
 # =========================================================================
@@ -34,7 +34,7 @@ VPN_DOMAIN="${VPN_DOMAIN:-vpn.example.com}"
 VPN_IPSEC_PSK="${VPN_IPSEC_PSK:-changeme-strong-psk}"
 VPN_USER="${VPN_USER:-vpnadmin}"
 VPN_PASSWORD="${VPN_PASSWORD:-changeme-secure-password}"
-VPN_SUBNET="${VPN_SUBNET:-192.168.43}"
+VPN_SUBNET="${VPN_SUBNET:-192.168.42}"
 SWAP_SIZE="${SWAP_SIZE:-2G}"
 PANEL_SRC="${PANEL_SRC:-/opt/vpnpanel-src}"
 INSTALL_SCRIPT="${PANEL_SRC}/deploy/ubuntu-24.04-install.sh"

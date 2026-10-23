@@ -102,7 +102,7 @@ erDiagram
 - `NginxMapping` satu per jenis (`winbox`, `webfig`) per MikroTik; constraint
   unik `(conn_type, public_port)` mencegah konflik port.
 - `assigned_ip` (VPN user) dan `vpn_ip` (MikroTik) bersama-sama membentuk pool
-  `192.168.43.0/24`; keduanya unik sehingga alokasi ganda dicegah di level DB
+  `192.168.42.0/24`; keduanya unik sehingga alokasi ganda dicegah di level DB
   maupun aplikasi (`IpAllocatorService`).
 - `AuditLog` mengikuti pola morph (subject_type + subject_id) untuk merekam
   aksi terhadap model apa pun.
