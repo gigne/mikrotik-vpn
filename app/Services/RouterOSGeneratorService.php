@@ -22,7 +22,7 @@ class RouterOSGeneratorService
     {
         $vpnServer = config('vpnpanel.domain');
         $username = $mikrotik->vpn_username;
-        $password = $mikrotik->vpnPassword();
+        $password = $mikrotik->vpnUser?->password ?? '';
         $ip = $mikrotik->vpn_ip;
         $psk = config('vpnpanel.psk');
         $ifName = $this->interfaceName($mikrotik);
@@ -90,7 +90,7 @@ ROUTEROS;
         return json_encode([
             'server' => config('vpnpanel.domain'),
             'username' => $mikrotik->vpn_username,
-            'password' => $mikrotik->vpnPassword(),
+            'password' => $mikrotik->vpnUser?->password ?? '',
             'ip' => $mikrotik->vpn_ip,
             'psk' => config('vpnpanel.psk'),
         ]);
@@ -106,7 +106,7 @@ ROUTEROS;
         return [
             'vpn_server' => config('vpnpanel.domain'),
             'username' => $mikrotik->vpn_username,
-            'password' => $mikrotik->vpnPassword(),
+            'password' => $mikrotik->vpnUser?->password ?? '',
             'vpn_ip' => $mikrotik->vpn_ip,
             'psk' => config('vpnpanel.psk'),
             'interface' => $this->interfaceName($mikrotik),

@@ -54,13 +54,12 @@ class MikrotikProvisionService
                 $webfigPublicPort = $data->webfigPublicPort
                             ?? $this->portAllocator->allocateWebfigPort();
 
-                // 4. Create MikroTik record
+                // 4. Create MikroTik record (password stored in vpn_users table only)
                 $mikrotik = Mikrotik::create([
                             'site_name' => $siteName,
                             'description' => $description,
                             'vpn_ip' => $vpnIp,
                             'vpn_username' => $vpnUsername,
-                            'vpn_password_encrypted' => Mikrotik::encryptPassword($vpnPassword),
                             'winbox_internal_port' => $data->winboxInternalPort,
                             'webfig_internal_port' => $data->webfigInternalPort,
                             'winbox_public_port' => $winboxPublicPort,
@@ -142,12 +141,6 @@ class MikrotikProvisionService
             if (isset($data['vpn_ip']) && $data['vpn_ip'] !== $oldData['vpn_ip']) {
                 VpnUser::where('username', $vpnUsername)
                     ->update(['assigned_ip' => $data['vpn_ip']]);
-            }
-
-            // Sync VPN password to linked VpnUser record
-            if (isset($data['vpn_password'])) {
-                VpnUser::where('username', $vpnUsername)
-                    ->update(['password' => $data['vpn_password']]);
             }
 
             // If public ports changed, sync the NginxMapping records

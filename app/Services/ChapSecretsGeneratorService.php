@@ -44,11 +44,11 @@ class ChapSecretsGeneratorService
 
         $entries = [];
 
-        // MikroTik branches first: they own their username and static IP.
+        // MikroTik branches: read password from linked VpnUser (single source of truth).
         foreach (Mikrotik::orderBy('vpn_username')->get() as $mikrotik) {
             $entries[$mikrotik->vpn_username] = $this->formatEntry(
                 $mikrotik->vpn_username,
-                $mikrotik->vpnPassword(),
+                $mikrotik->vpnUser?->password ?? '',
                 $mikrotik->vpn_ip,
             );
         }

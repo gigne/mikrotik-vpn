@@ -19,15 +19,14 @@ class Mikrotik extends Model
         'description',
         'vpn_ip',
         'vpn_username',
-            'vpn_password_encrypted',
         'winbox_internal_port',
         'webfig_internal_port',
         'winbox_public_port',
         'webfig_public_port',
         'routeros_version',
-            'is_online',
+        'is_online',
         'last_seen_at',
-            'ssh_public_key',
+        'ssh_public_key',
     ];
 
     protected $casts = [
@@ -39,9 +38,7 @@ class Mikrotik extends Model
         'last_seen_at' => 'datetime',
     ];
 
-    protected $hidden = [
-            'vpn_password_encrypted',
-    ];
+    // no hidden fields — password lives in vpn_users table
 
     public function vpnUser(): BelongsTo
     {
@@ -87,13 +84,12 @@ class Mikrotik extends Model
         return "{$domain}:{$port}";
     }
 
+        /**
+         * Get the VPN password from the related VpnUser record.
+         * This is the single source of truth for the password.
+         */
         public function vpnPassword(): string
         {
-            return rescue(fn () => decrypt($this->vpn_password_encrypted), $this->vpn_password_encrypted, false);
-        }
-
-        public static function encryptPassword(string $plain): string
-        {
-            return encrypt($plain);
+            return $this->vpnUser?->password ?? '';
         }
 }

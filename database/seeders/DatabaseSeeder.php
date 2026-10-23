@@ -71,7 +71,6 @@ class DatabaseSeeder extends Seeder
                     'site_name' => $site['site_name'],
                     'description' => 'Seeded reference branch',
                     'vpn_ip' => $site['vpn_ip'],
-                    'vpn_password_encrypted' => Mikrotik::encryptPassword($vpnPassword),
                     'winbox_internal_port' => 8291,
                     'webfig_internal_port' => 80,
                     'winbox_public_port' => $site['winbox_public'],

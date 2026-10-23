@@ -95,16 +95,6 @@ class VpnProvisionService
                 'is_enabled' => $data->isEnabled,
             ]);
 
-            // Sync VPN password to linked MikroTik record's encrypted password column
-            $newPassword = ($data->password !== null && $data->password !== '')
-                ? $data->password
-                : null;
-
-            if ($newPassword !== null) {
-                Mikrotik::where('vpn_username', $vpnUser->username)
-                    ->update(['vpn_password_encrypted' => Mikrotik::encryptPassword($newPassword)]);
-            }
-
             $this->deployChapSecrets();
 
             $this->auditLog->log('vpn_user_updated', $vpnUser, [
