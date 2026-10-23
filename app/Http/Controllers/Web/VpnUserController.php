@@ -81,10 +81,10 @@ class VpnUserController extends Controller
         $this->provisionService->update($vpnUser, VpnUserData::fromArray([
             'username' => $data['username'],
             'password' => $hasNewPassword ? $data['password'] : $vpnUser->password,
-            'assignedIp' => $data['assignedIp'] ?? $vpnUser->assigned_ip,
+            'assigned_ip' => $data['assigned_ip'] ?? $vpnUser->assigned_ip,
             'notes' => $data['notes'],
-            'expiredAt' => $data['expiredAt'],
-            'isEnabled' => $data['isEnabled'],
+            'expired_at' => $data['expired_at'],
+            'is_enabled' => $data['is_enabled'],
         ]));
 
         return redirect()
