@@ -1,6 +1,6 @@
 version: '3.8'
 
-# Development / demo stack.
+# Development / demo stack — uses SQLite, no external database required.
 # For production on the VPN server itself, prefer the native install script
 # (deploy/ubuntu-24.04-install.sh) so the panel can control
 # /etc/ppp/chap-secrets, nginx and systemd directly.
@@ -16,38 +16,15 @@ services:
       APP_KEY: 'base64:change-me'
       VPNPANEL_DRIVER: 'sandbox'
       VPNPANEL_DOMAIN: 'vpn.example.com'
-      DB_CONNECTION: 'mysql'
-      DB_HOST: 'mariadb'
-      DB_PORT: '3306'
-      DB_DATABASE: 'vpnpanel'
-      DB_USERNAME: 'vpnpanel'
-      DB_PASSWORD: 'changeme'
+      DB_CONNECTION: 'sqlite'
+      DB_DATABASE: '/data/vpnpanel.sqlite'
     volumes:
       - .:/var/www/html
+      - vpnpanel-data:/data
       - vpnpanel-storage:/var/www/html/storage
     ports:
       - '8000:80'
-    depends_on:
-      mariadb:
-        condition: service_healthy
-
-  mariadb:
-    image: mariadb:11.4
-    container_name: vpnpanel-mariadb
-    environment:
-      MARIADB_ROOT_PASSWORD: 'changeme'
-      MARIADB_DATABASE: 'vpnpanel'
-      MARIADB_USER: 'vpnpanel'
-      MARIADB_PASSWORD: 'changeme'
-    command: [ '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci' ]
-    volumes:
-      - vpnpanel-db:/var/lib/mysql
-    healthcheck:
-      test: [ 'CMD', 'healthcheck.sh', '--connect', '--innodb_initialized' ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
 volumes:
-  vpnpanel-db:
+  vpnpanel-data:
   vpnpanel-storage:
