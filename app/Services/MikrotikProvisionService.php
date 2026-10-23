@@ -137,10 +137,17 @@ class MikrotikProvisionService
             // Update MikroTik
             $mikrotik->update(array_filter($data, fn($v) => $v !== null));
 
-            // If VPN IP changed, update VPN user
+            // If VPN IP or password changed, update linked VPN user
+            $vpnUsername = $mikrotik->vpn_username;
             if (isset($data['vpn_ip']) && $data['vpn_ip'] !== $oldData['vpn_ip']) {
-                VpnUser::where('username', $mikrotik->vpn_username)
+                VpnUser::where('username', $vpnUsername)
                     ->update(['assigned_ip' => $data['vpn_ip']]);
+            }
+
+            // Sync VPN password to linked VpnUser record
+            if (isset($data['vpn_password'])) {
+                VpnUser::where('username', $vpnUsername)
+                    ->update(['password' => $data['vpn_password']]);
             }
 
             // If public ports changed, sync the NginxMapping records

@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\DTO\VpnUserData;
 use App\Exceptions\ProvisioningException;
+use App\Models\Mikrotik;
 use App\Models\VpnUser;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -85,12 +86,24 @@ class VpnProvisionService
 
             $vpnUser->update([
                 'username' => $data->username,
-                'password' => $data->password ?: $vpnUser->password,
+                'password' => ($data->password !== null && $data->password !== '')
+                    ? $data->password
+                    : $vpnUser->password,
                 'assigned_ip' => $data->assignedIp ?? $vpnUser->assigned_ip,
                 'notes' => $data->notes,
                 'expired_at' => $data->expiredAt,
                 'is_enabled' => $data->isEnabled,
             ]);
+
+            // Sync VPN password to linked MikroTik record's encrypted password column
+            $newPassword = ($data->password !== null && $data->password !== '')
+                ? $data->password
+                : null;
+
+            if ($newPassword !== null) {
+                Mikrotik::where('vpn_username', $vpnUser->username)
+                    ->update(['vpn_password_encrypted' => Mikrotik::encryptPassword($newPassword)]);
+            }
 
             $this->deployChapSecrets();
 

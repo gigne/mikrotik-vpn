@@ -76,12 +76,15 @@ class VpnUserController extends Controller
         $this->authorize('update', $vpnUser);
 
         $data = $request->validated();
-        if (empty($data['password'])) {
-            unset($data['password']);
-        }
+        $hasNewPassword = isset($data['password']) && $data['password'] !== '';
 
-        $this->provisionService->update($vpnUser, VpnUserData::fromArray($data + [
-            'password' => $vpnUser->password,
+        $this->provisionService->update($vpnUser, VpnUserData::fromArray([
+            'username' => $data['username'],
+            'password' => $hasNewPassword ? $data['password'] : $vpnUser->password,
+            'assignedIp' => $data['assignedIp'] ?? $vpnUser->assigned_ip,
+            'notes' => $data['notes'],
+            'expiredAt' => $data['expiredAt'],
+            'isEnabled' => $data['isEnabled'],
         ]));
 
         return redirect()
