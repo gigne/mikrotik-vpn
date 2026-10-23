@@ -1,0 +1,20 @@
+# VPN Panel queue worker (systemd).
+# Install: cp deploy/vpnpanel-worker.service /etc/systemd/system/
+#          systemctl daemon-reload && systemctl enable --now vpnpanel-worker
+
+[Unit]
+Description=VPN Panel queue worker
+After=network.target mariadb.service postgresql.service redis-server.service
+
+[Service]
+User=vpnpanel
+Group=vpnpanel
+Restart=always
+ExecStart=/usr/bin/php /var/www/vpnpanel/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+RestartSec=5
+StandardOutput=append:/var/log/vpnpanel/worker.log
+StandardError=append:/var/log/vpnpanel/worker-error.log
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target
