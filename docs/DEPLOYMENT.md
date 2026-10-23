@@ -8,7 +8,9 @@ secara langsung.
 ## 1. Prasyarat
 
 - Ubuntu 24.04 dengan setup-ipsec-vpn telah terpasang (xl2tpd + IPsec aktif).
-- Domain `vpn.example.com` mengarah ke IP publik server.
+- IP publik server. Domain bersifat opsional: vhost panel adalah *catch-all*,
+  jadi panel bisa diakses langsung lewat `http://<IP>` maupun lewat domain apa
+  pun yang mengarah ke IP tersebut.
 - Port terbuka: 80/443 (panel), 500/4500/1701 UDP (IPsec/L2TP dari MikroTik),
   serta rentang port publik Winbox (8291+) dan WebFig (8080+).
 - User root / sudo.
