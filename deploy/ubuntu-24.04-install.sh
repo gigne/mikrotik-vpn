@@ -267,6 +267,16 @@ if [ -s /etc/ppp/chap-secrets ] && grep -qP '^\h*"[^"]+"\h+' /etc/ppp/chap-secre
     sudo -u "$APP_USER" php "$APP_DIR/artisan" vpnpanel:import-chap-secrets --silent || true
 fi
 
+# Set up sudoers FIRST so that the artisan deploy-configs command can use
+# sudo systemctl restart xl2tpd/ipsec without password prompts.
+echo "==> Permissions: atomic-write helper + sudoers"
+chmod 0755 "$APP_DIR/deploy/vpnpanel-atomic-write"
+chown "$APP_USER:$APP_USER" "$APP_DIR/deploy/vpnpanel-atomic-write"
+cp "$APP_DIR/deploy/sudoers-vpnpanel" /etc/sudoers.d/vpnpanel
+sed -i 's/\r$//' /etc/sudoers.d/vpnpanel
+chmod 0440 /etc/sudoers.d/vpnpanel
+visudo -cf /etc/sudoers.d/vpnpanel
+
 # Rewrite /etc/ppp/chap-secrets + nginx configs from the panel's database.
 # The LocalProcessRunner cannot use systemctl directly when running as $APP_USER,
 # so we delegate to a root context for service management while keeping the file
@@ -397,18 +407,6 @@ chown -R "$APP_USER:$APP_USER" /var/log/vpnpanel
 cp "$APP_DIR/deploy/vpnpanel-worker.service" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now vpnpanel-worker
-
-echo "==> Permissions: atomic-write helper + sudoers"
-# The panel owns the target *files* but their parent dirs (/etc/ppp, /etc/nginx)
-# stay root-owned. A dedicated sudo helper writes via stdin so secrets never
-# appear in argv or /proc/<pid>/cmdline.
-chmod 0755 /var/www/vpnpanel/deploy/vpnpanel-atomic-write
-chown "$APP_USER:$APP_USER" /var/www/vpnpanel/deploy/vpnpanel-atomic-write
-
-cp "$APP_DIR/deploy/sudoers-vpnpanel" /etc/sudoers.d/vpnpanel
-sed -i 's/\r$//' /etc/sudoers.d/vpnpanel
-chmod 0440 /etc/sudoers.d/vpnpanel
-visudo -cf /etc/sudoers.d/vpnpanel
 
 echo ""
 echo "==============================================================="
