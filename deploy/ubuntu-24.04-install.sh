@@ -233,6 +233,10 @@ fi
 sudo -u "$APP_USER" php "$APP_DIR/artisan" migrate --force
 sudo -u "$APP_USER" php "$APP_DIR/artisan" db:seed --force
 
+# Auto-generate IKEv2 CA certificates so that IKEv2 user creation works immediately.
+echo "==> Generating IKEv2 CA certificates (required for IKEv2 user creation)"
+sudo -u "$APP_USER" php "$APP_DIR/artisan" ikev2:generate-ca --force 2>&1 && echo "    CA generated successfully." || echo "    WARNING: CA generation failed - will need manual run of 'php artisan ikev2:generate-ca'"
+
 echo "==> Importing hwdsl2 VPN accounts & deploying chap-secrets from database"
 # Pre-create backup dirs owned by $APP_USER BEFORE deploy-configs runs;
 # otherwise the first file_put_contents() fails with mkdir(): Permission denied.
