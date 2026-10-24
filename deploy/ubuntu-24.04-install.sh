@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =========================================================================
-# VPN Panel — Ubuntu 24.04 installation script
+# VPN Panel --- Ubuntu 24.04 installation script
 #
 # Installs PHP 8.5 (or 8.3 fallback), Nginx (+ stream module), SQLite
 # (no external database required), the panel code, and configures it as the
@@ -8,20 +8,52 @@
 # Set VPNPANEL_DRIVER=local so the panel writes directly to
 # /etc/ppp/chap-secrets, the nginx configs and systemd.
 #
+# IMPORTANT - install order:
+#   1. hwdsl2/setup-ipsec-vpn (creates /etc/ipsec.d, /etc/ppp, /etc/xl2tpd)
+#   2. this script (needs those paths, builds the panel's frontend assets)
+#
 # Run as root:
 #   sudo bash deploy/ubuntu-24.04-install.sh
+#
+# Optional overrides:
+#   VPNPANEL_DOMAIN=vpn.example.com   panel domain written to .env
+#   VPNPANEL_SRC_DIR=/opt/vpnpanel-src
+#   VPNPANEL_ALLOW_MISSING_IPSEC=1    install the panel without the VPN stack
 # =========================================================================
 set -euo pipefail
 
 APP_DIR="/var/www/vpnpanel"
 APP_USER="vpnpanel"
-DOMAIN="${VPNPANEL_DOMAIN:-vpn.example.com}"
+DOMAIN="${VPNPANEL_DOMAIN:-}"
 SRC_DIR="${VPNPANEL_SRC_DIR:-/opt/vpnpanel-src}"
 PSK="${VPNPANEL_PSK:-changeme-strong-psk}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@example.com}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-changeme-admin-password}"
 OPERATOR_EMAIL="${OPERATOR_EMAIL:-operator@example.com}"
 OPERATOR_PASSWORD="${OPERATOR_PASSWORD:-changeme-operator-password}"
+ALLOW_MISSING_IPSEC="${VPNPANEL_ALLOW_MISSING_IPSEC:-0}"
+
+# ---------------------------------------------------------------------------
+# Preflight: the panel is a control panel *for* hwdsl2/setup-ipsec-vpn, so that
+# stack has to be installed first. Without it /etc/ipsec.d, /etc/ppp and
+# /etc/xl2tpd are missing and every VPN operation fails at runtime.
+# ---------------------------------------------------------------------------
+MISSING_IPSEC=""
+[ -d /etc/ipsec.d ] || MISSING_IPSEC="${MISSING_IPSEC} /etc/ipsec.d"
+[ -f /etc/ipsec.conf ] || MISSING_IPSEC="${MISSING_IPSEC} /etc/ipsec.conf"
+[ -d /etc/xl2tpd ] || MISSING_IPSEC="${MISSING_IPSEC} /etc/xl2tpd"
+if [ -n "$MISSING_IPSEC" ]; then
+    echo "WARNING: hwdsl2/setup-ipsec-vpn does not appear to be installed."
+    echo "         Missing:${MISSING_IPSEC}"
+    echo "         Install the VPN stack FIRST, then re-run this script:"
+    echo "           apt-get update && apt-get install -y wget"
+    echo "           wget -qO /tmp/vpn-install.sh https://get.vpnsetup.net && bash /tmp/vpn-install.sh"
+    if [ "$ALLOW_MISSING_IPSEC" != "1" ]; then
+        echo "Aborting. Re-run with VPNPANEL_ALLOW_MISSING_IPSEC=1 to install the panel anyway."
+        exit 1
+    fi
+    echo "         Continuing anyway because VPNPANEL_ALLOW_MISSING_IPSEC=1."
+fi
 
 echo "==> Installing system packages"
 export DEBIAN_FRONTEND=noninteractive
@@ -69,24 +101,55 @@ if [ -d "$APP_DIR" ]; then
     # stored VPN passwords), storage/logs and the local sqlite db if any.
     STAGING="$(mktemp -d)"
     [ -f "$APP_DIR/.env" ] && cp -a "$APP_DIR/.env" "$STAGING/.env"
+    [ -f "$APP_DIR/database.sqlite" ] && cp -a "$APP_DIR/database.sqlite" "$STAGING/database.sqlite"
     [ -d "$APP_DIR/storage/logs" ] && cp -a "$APP_DIR/storage/logs" "$STAGING/logs"
     rm -rf "$APP_DIR"
-    cp -a "$SRC_DIR" "$APP_DIR"
+    cp -a "$SRC_DIR"/. "$APP_DIR"
     [ -f "$STAGING/.env" ] && cp -a "$STAGING/.env" "$APP_DIR/.env"
+    if [ -f "$STAGING/database.sqlite" ]; then
+        cp -a "$STAGING/database.sqlite" "$APP_DIR/database.sqlite"
+    fi
     if [ -d "$STAGING/logs" ]; then
         mkdir -p "$APP_DIR/storage/logs"
         cp -a "$STAGING/logs/." "$APP_DIR/storage/logs/"
     fi
     rm -rf "$STAGING"
 else
+    cp -a "$SRC_DIR"/. "$APP_DIR"
     mkdir -p "$APP_DIR/storage/logs"
-    cp -a "$SRC_DIR" "$APP_DIR"
     chown -R "$APP_USER:$APP_USER" "$APP_DIR/storage"
 fi
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
 echo "==> Installing PHP dependencies"
 sudo -u "$APP_USER" composer install --no-dev --optimize-autoloader --no-interaction -d "$APP_DIR"
+
+echo "==> Building frontend assets (Vite)"
+# public/build is gitignored, so it never arrives with the source checkout and
+# the panel would answer HTTP 500 ("Vite manifest not found") without it.
+if [ ! -f "$APP_DIR/public/build/manifest.json" ]; then
+    # Vite 7 requires Node >= 20; Ubuntu 24.04 ships Node 18.
+    if ! command -v node >/dev/null 2>&1 || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 20 ]; then
+        curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+        apt-get install -y nodejs
+    fi
+    if [ -f "$SRC_DIR/package-lock.json" ]; then
+        ( cd "$SRC_DIR" && npm ci --no-audit --no-fund )
+    else
+        ( cd "$SRC_DIR" && npm install --no-audit --no-fund )
+    fi
+    ( cd "$SRC_DIR" && npm run build )
+    mkdir -p "$APP_DIR/public/build"
+    cp -a "$SRC_DIR/public/build"/. "$APP_DIR/public/build/"
+fi
+if [ ! -f "$APP_DIR/public/build/manifest.json" ]; then
+    echo "ERROR: $APP_DIR/public/build/manifest.json is missing." >&2
+    echo "       The panel returns HTTP 500 without it. Build locally" >&2
+    echo "       ('npm ci && npm run build') and copy public/build to ${APP_DIR}/public/," >&2
+    echo "       or install Node >= 20 so this script can build it." >&2
+    exit 1
+fi
+chown -R "$APP_USER:$APP_USER" "$APP_DIR/public/build"
 
 echo "==> Ensuring SQLite database directory exists"
 mkdir -p "$(dirname "$APP_DIR/database.sqlite")"
@@ -95,11 +158,23 @@ chown -R "$APP_USER:$APP_USER" "$APP_DIR/database.sqlite" "$APP_DIR/storage"
 
 echo "==> Writing environment file"
 # Preserve APP_KEY on re-runs: it encrypts stored MikroTik VPN passwords, so
-# rotating it would make existing records undecryptable.
+# rotating it would make existing records undecryptable. APP_URL is preserved
+# too so a re-run does not reset a real domain back to the placeholder.
 EXISTING_APP_KEY=""
+EXISTING_APP_URL=""
 if [ -f "$APP_DIR/.env" ]; then
     EXISTING_APP_KEY="$(grep -E '^APP_KEY=' "$APP_DIR/.env" | head -1 | cut -d= -f2- || true)"
+    EXISTING_APP_URL="$(grep -E '^APP_URL=' "$APP_DIR/.env" | head -1 | cut -d= -f2- || true)"
 fi
+
+if [ -z "$DOMAIN" ]; then
+    if [ -n "$EXISTING_APP_URL" ]; then
+        DOMAIN="${EXISTING_APP_URL#*://}"
+    else
+        DOMAIN="vpn.example.com"
+    fi
+fi
+DOMAIN="${DOMAIN%%/*}"
 
 sudo -u "$APP_USER" bash -c "cat > '$APP_DIR/.env' <<EOF
 APP_NAME='VPN Panel'
@@ -158,6 +233,68 @@ fi
 sudo -u "$APP_USER" php "$APP_DIR/artisan" migrate --force
 sudo -u "$APP_USER" php "$APP_DIR/artisan" db:seed --force
 
+echo "==> Importing hwdsl2 VPN accounts & deploying chap-secrets from database"
+# Pre-create backup dirs owned by $APP_USER BEFORE deploy-configs runs;
+# otherwise the first file_put_contents() fails with mkdir(): Permission denied.
+BACKUP_DIR="/var/backups/vpn-panel"
+mkdir -p "$BACKUP_DIR"/{chap-secrets,nginx,managed,database,mikrotik}
+chown -R "$APP_USER:$APP_USER" "$BACKUP_DIR"
+chmod 0750 "$BACKUP_DIR"
+
+# The panel owns chap-secrets; ensure it exists and is readable/writable by $APP_USER
+# so that ChapSecretsDeployService can back up the old file and write a new one.
+mkdir -p /etc/ppp
+touch /etc/ppp/chap-secrets
+chown "$APP_USER:$APP_USER" /etc/ppp/chap-secrets
+chmod 0600 /etc/ppp/chap-secrets
+# Parent dir /etc/ppp must be group-writable so atomic temp files can be created
+chown root:"$APP_USER" /etc/ppp
+chmod 0775 /etc/ppp
+
+# Save pre-panel backup of chap-secrets if it already has real entries.
+# We need the directory writable by $APP_USER before this copy can succeed.
+if [ -f "$BACKUP_DIR/chap-secrets/"pre-panel-* ]; then
+    echo "    Pre-panel backup already exists."
+else
+    if [ -s /etc/ppp/chap-secrets ] && grep -qP '^\h*"[^"]+"\h+' /etc/ppp/chap-secrets; then
+        cp -a /etc/ppp/chap-secrets "$BACKUP_DIR/chap-secrets/pre-panel-$(date +%Y%m%d%H%M%S)"
+    fi
+fi
+
+# Import existing hwdsl2 accounts (e.g. vpnadmin) from /etc/ppp/chap-secrets into the panel database.
+# Skip if file is still empty — nothing to import yet.
+if [ -s /etc/ppp/chap-secrets ] && grep -qP '^\h*"[^"]+"\h+' /etc/ppp/chap-secrets; then
+    sudo -u "$APP_USER" php "$APP_DIR/artisan" vpnpanel:import-chap-secrets --silent || true
+fi
+
+# Rewrite /etc/ppp/chap-secrets + nginx configs from the panel's database.
+# The LocalProcessRunner cannot use systemctl directly when running as $APP_USER,
+# so we delegate to a root context for service management while keeping the file
+# writes safe via our sudoers atomic-write helpers.
+DEPLOY_EXIT=0
+sudo -u "$APP_USER" php "$APP_DIR/artisan" vpnpanel:deploy-configs > >(grep -v '^$') 2>&1
+DEPLOY_EXIT=${PIPESTATUS[0]}
+
+if [ "$DEPLOY_EXIT" -ne 0 ]; then
+    echo "    WARNING: deploy-configs returned exit $DEPLOY_EXIT (service restart may require manual steps)"
+else
+    echo "    Configs deployed successfully."
+fi
+
+# Directly manage services as root when deploy-configs could not (LocalProcessRunner
+# lacks systemctl access under vpnpanel). This guarantees the configs take effect even
+# if the artisan command skipped the restart step due to permission errors.
+echo "    Ensuring services are running..."
+# Restart xl2tpd if it's running (installed by hwdsl2, managed outside systemd)
+if pgrep -x xl2tpd > /dev/null; then
+    killall -HUP xl2tpd 2>/dev/null || supervisorctl restart xl2tpd 2>/dev/null || true
+    echo "      xl2tpd signal sent"
+fi
+# Reload nginx config (files were written by deploy-configs or atomic-write)
+/usr/sbin/nginx -t 2>&1 | tail -1
+systemctl reload nginx 2>/dev/null || service nginx reload 2>/dev/null || { /usr/sbin/nginx -s reload 2>/dev/null; }
+echo "      nginx reloaded"
+
 echo "==> Caching configuration"
 sudo -u "$APP_USER" php "$APP_DIR/artisan" config:cache
 sudo -u "$APP_USER" php "$APP_DIR/artisan" route:cache
@@ -167,24 +304,6 @@ sudo -u "$APP_USER" php "$APP_DIR/artisan" storage:link || true
 echo "==> Installing laravel scheduler cron"
 echo "* * * * * vpnpanel /usr/local/bin/php $APP_DIR/artisan schedule:run >> /dev/null 2>&1" > /etc/cron.d/vpnpanel
 chmod 0644 /etc/cron.d/vpnpanel
-
-echo "==> Empty chap-secrets bootstrap (panel owns this file from now on)"
-BACKUP_DIR="/var/backups/vpn-panel"
-mkdir -p "$BACKUP_DIR/chap-secrets" "$BACKUP_DIR/nginx" "$BACKUP_DIR/managed" "$BACKUP_DIR/database" "$BACKUP_DIR/mikrotik"
-# The panel writes backups as $APP_USER; root-owned dirs would make every
-# chap-secrets/nginx deploy fail with "Permission denied".
-chown -R "$APP_USER:$APP_USER" "$BACKUP_DIR"
-chmod 0750 "$BACKUP_DIR"
-if [ -f /etc/ppp/chap-secrets ]; then
-    cp -a /etc/ppp/chap-secrets "$BACKUP_DIR/chap-secrets/pre-panel-$(date +%Y%m%d%H%M%S)"
-    chown "$APP_USER:$APP_USER" "$BACKUP_DIR/chap-secrets/pre-panel-"* 2>/dev/null || true
-fi
-touch /etc/ppp/chap-secrets
-chown "$APP_USER:$APP_USER" /etc/ppp/chap-secrets
-chmod 0600 /etc/ppp/chap-secrets
-# Parent dir /etc/ppp must be group-writable so atomic temp files can be created
-chown root:"$APP_USER" /etc/ppp
-chmod 0775 /etc/ppp
 
 echo "==> Nginx: virtual host + panel-owned config files"
 cp "$APP_DIR/deploy/nginx-vpnpanel.conf" /etc/nginx/sites-available/vpnpanel
@@ -217,7 +336,7 @@ FPM_OVERRIDE_DIR="/etc/systemd/system/php${PHP_FPM_VERSION}-fpm.service.d"
 mkdir -p "$FPM_OVERRIDE_DIR"
 cat > "$FPM_OVERRIDE_DIR/override.conf" <<EOF
 [Service]
-ReadWritePaths=/etc/ppp /etc/nginx /var/backups/vpn-panel /var/log/vpnpanel /etc/ipsec.d/certs
+ReadWritePaths=-/etc/ppp -/etc/nginx -/var/backups/vpn-panel -/var/log/vpnpanel -/etc/ipsec.d/certs
 EOF
 systemctl daemon-reload
 
@@ -239,7 +358,7 @@ usermod -aG "$APP_USER" www-data || true
 
 # /run/php must be traversable by vpnpanel group so FPM can create the socket
 # and nginx can connect. Runtime tmpfs is re-created on boot by
-# /usr/lib/tmpfiles.d/php*.conf (which sets it root:root 0755) — override once.
+# /usr/lib/tmpfiles.d/php*.conf (which sets it root:root 0755) - override once.
 # On next boot php-fpm start will recreate the socket inside the dir.
 chown root:"$APP_USER" /run/php 2>/dev/null || true
 chmod 0775 /run/php 2>/dev/null || true
