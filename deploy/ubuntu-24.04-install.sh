@@ -277,6 +277,12 @@ sed -i 's/\r$//' /etc/sudoers.d/vpnpanel
 chmod 0440 /etc/sudoers.d/vpnpanel
 visudo -cf /etc/sudoers.d/vpnpanel
 
+# Pre-create nginx config directories with correct ownership BEFORE artisan migrate/seeds
+# These must be writable by $APP_USER for deploy-configs to succeed.
+mkdir -p /etc/nginx/conf.d /etc/nginx/stream.d
+chown root:"$APP_USER" /etc/nginx /etc/nginx/conf.d /etc/nginx/stream.d
+chmod 0775 /etc/nginx /etc/nginx/conf.d /etc/nginx/stream.d
+
 # Rewrite /etc/ppp/chap-secrets + nginx configs from the panel's database.
 # The LocalProcessRunner cannot use systemctl directly when running as $APP_USER,
 # so we delegate to a root context for service management while keeping the file
